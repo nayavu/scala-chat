@@ -30,7 +30,7 @@ class AuthenticationService @Inject()(clock: Clock) {
 
       val userId = existingMember.map(_.userId).getOrElse(username)
 
-      val member = Member(userId, username, clock.instant)
+      val member = Member(userId, username, Some(clock.instant.toEpochMilli))
       members(username) = member
 
       sessions(token) = member
@@ -45,6 +45,12 @@ class AuthenticationService @Inject()(clock: Clock) {
     }
   }
 
+  def listMembers(): Seq[Member] = {
+    this.synchronized {
+      this.members.values.toSeq
+    }
+  }
+
   def logout(token: String): Boolean = {
     this.synchronized {
       val member = sessions.get(token)
@@ -54,7 +60,7 @@ class AuthenticationService @Inject()(clock: Clock) {
       }
 
       val nickname = member.map(_.nickname).get
-      members(nickname) = members(nickname).copy(onlineSince = null)
+      members(nickname) = members(nickname).copy(onlineSince = None)
 
       sessions -= token
 

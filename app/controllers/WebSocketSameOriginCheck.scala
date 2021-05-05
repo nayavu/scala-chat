@@ -11,7 +11,7 @@ trait WebSocketSameOriginCheck {
 
   val configuration: Configuration
 
-  private val allowedHosts = configuration.get[Seq[String]]("app.websockets.allowedHosts")
+  private val allowedHost = configuration.get[String]("app.websockets.host")
 
   /**
    * Checks that the WebSocket comes from the same origin.  This is necessary to protect
@@ -39,6 +39,7 @@ trait WebSocketSameOriginCheck {
   }
 
   private def originMatches(origin: String): Boolean = {
-    allowedHosts.contains(origin)
+    val originUri = URI.create(origin)
+    s"${originUri.getHost}:${originUri.getPort}" == allowedHost
   }
 }

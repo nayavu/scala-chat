@@ -22,9 +22,9 @@ export const chatStore = {
 
     state() {
         return {
-            // A list of members,
+            // A list of Members,
             // [{ userId: "1", nickname: 'Member1', onlineSince: 123456 }]
-            membersList: [],
+            members: [],
 
             // Map of userId => list of Messages
             // {
@@ -46,15 +46,11 @@ export const chatStore = {
     mutations: {
         // -- messages
 
-        SET_MESSAGES(state, payload) {
-            state.messages = payload;
-        },
-
         // RECEIVE_MESSAGE is used by websocket plugin to receive chat messages
         RECEIVE_MESSAGE(state, payload) {
             // expected payload:
-            // {"userId": "1", "messageId": "2", "senderId": "999", "recipientId": "1", "message": "aaa", "timestamp":"12345678", "delivered": true}
-            const userId = payload.userId;
+            // {"messageId": "2", "senderId": "999", "recipientId": "1", "message": "aaa", "timestamp":"12345678", "delivered": true}
+            const userId = payload.senderId;
             if (!state.messages[userId]) {
                 state.messages[userId] = [];
             }
@@ -64,12 +60,13 @@ export const chatStore = {
         // ADD_MESSAGE is used by the UI to append chat messages. Also it is listened by websocket plugin
         ADD_MESSAGE(state, payload) {
             // expected payload:
-            // {"userId": "1", "messageId": "2", "senderId": "999", "recipientId": "1", "message": "aaa", "timestamp":"12345678"}
-            const userId = payload.userId;
+            // {"messageId": "2", "senderId": "999", "recipientId": "1", "message": "aaa", "timestamp":"12345678"}
+            const userId = payload.recipientId;
             if (!state.messages[userId]) {
                 state.messages[userId] = [];
             }
             state.messages[userId].push({ ...payload, delivered: false });
+
         },
 
         CONFIRM_DELIVERY(state, payload) {
@@ -79,39 +76,31 @@ export const chatStore = {
             if (messageIdx == null) {
                 return;
             }
+
             state.messages[userId][messageIdx].delivered = true;
             state.messages[userId][messageIdx].timestamp = payload.timestamp;
-        },
-
-        DELETE_MESSAGE(state, payload) {
-            // expected payload:
-            // {"userId": "1", "messageId": "2"}
-            const userId = payload.userId;
-            const messageIdx = findMessageIndex(state, userId, payload.messageId);
-            if (messageIdx == null) {
-                return;
-            }
-            state.messages[userId].splice(messageIdx, 1);
         },
 
         // -- members
 
         SET_MEMBERS(state, payload) {
-            state.membersList = payload;
+            state.members = payload;
         },
 
         UPDATE_MEMBER(state, payload) {
-            // TODO use map for members
+            // It's not effective to search for member index in array, better to use Map for this purposes
+            // However, it's quite easy to use the array in Vuex state
+            // TODO : think of better alternatives
             const memberIdx = state.members.findIndex((member) => member.userId === payload.userId);
             if (memberIdx == null) {
                 console.warn(`Unabled to find member with userId=${payload.userId}`);
             }
-            state.members[memberIdx] = payload;
+            state.members.splice(memberIdx, 0, payload);
         },
 
         // -- socket state
 
-        SET_CONNECTED(state, payload) {
+        SET_CONNECTED_STATE(state, payload) {
             state.connected = payload;
         },
 
@@ -119,7 +108,7 @@ export const chatStore = {
 
     getters: {
         membersList(state) {
-            return state.membersList;
+            return state.members;
         },
         messages(state) {
             return state.messages;
@@ -129,21 +118,17 @@ export const chatStore = {
     actions: {
         // -- members
         async loadMembers(context) {
-            const members = await chatService.loadMembers();
+            const token = context.rootGetters['auth/token'];
+            const members = await chatService.loadMembers(token);
             context.commit('SET_MEMBERS', members);
         },
 
         updateMember(context, payload) {
-            // payload is expected to be member object
+            // payload is expected to be a member object
             context.commit('UPDATE_MEMBER', payload);
         },
 
         // -- messages
-
-        async loadMessages(context) {
-            const messages = await chatService.loadMessages();
-            context.commit('SET_MESSAGES', messages);
-        },
 
         receiveMessage(context, payload) {
             context.commit('RECEIVE_MESSAGE', payload);
@@ -159,10 +144,6 @@ export const chatStore = {
             context.commit('ADD_MESSAGE', messagePayload);
         },
 
-        deleteMessage(context, payload) {
-            context.commit('DELETE_MESSAGE', payload);
-        },
-
         confirmDelivery(context, payload) {
             context.commit('CONFIRM_DELIVERY', payload);
         },
@@ -170,11 +151,11 @@ export const chatStore = {
         // -- socket state
 
         setSocketConnected(context) {
-            context.commit('SET_CONNECTED', true);
+            context.commit('SET_CONNECTED_STATE', true);
         },
 
         setSocketDisconnected(context) {
-            context.commit('SET_CONNECTED', false);
+            context.commit('SET_CONNECTED_STATE', false);
         },
 
         // -- misc
@@ -184,9 +165,9 @@ export const chatStore = {
             chatService.notifyMemberStartedTyping(payload.senderId, payload.recipientId);
         },
 
-        notifyMemberStopperTyping(_, payload) {
+        notifyMemberStoppedTyping(_, payload) {
             // it has nothing to do with store, it just wraps service call (for code consistency)
-            chatService.notifyMemberStopperTyping(payload.senderId, payload.recipientId);
+            chatService.notifyMemberStoppedTyping(payload.senderId, payload.recipientId);
         },
     }
 };

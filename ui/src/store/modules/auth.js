@@ -1,4 +1,4 @@
-import { authService } from "@/services";
+import { authService, chatService } from "@/services";
 
 export const authStore = {
     namespaced: true,
@@ -7,15 +7,19 @@ export const authStore = {
         return {
             userId: null,
             nickname: null,
-            onlineSince: null
+            onlineSince: null,
+            chatSocketUrl: null,
+            token: null
         };
     },
 
     mutations: {
         setUserDetails(state, payload) {
-            state.userId = payload?.userId;
-            state.nickname = payload?.nickname;
-            state.onlineSince = payload?.onlineSince;
+            state.userId = payload?.member?.userId;
+            state.nickname = payload?.member?.nickname;
+            state.onlineSince = payload?.member?.onlineSince;
+            state.token = payload?.token;
+            state.chatSocketUrl = payload?.chatSocketUrl;
         }
     },
 
@@ -23,7 +27,8 @@ export const authStore = {
         async logout(context) {
             console.log('Logging out');
 
-            await authService.logout();
+            chatService.disconnect();
+            await authService.logout(context.state.token);
             context.commit('setUserDetails', null);
         },
 
@@ -33,6 +38,8 @@ export const authStore = {
 
             const user = await authService.login(username);
             context.commit('setUserDetails', user);
+
+            chatService.connect(context.state.chatSocketUrl, context.state.token);
         }
     },
 
@@ -47,6 +54,10 @@ export const authStore = {
 
         nickname(state) {
             return state.nickname;
+        },
+
+        token(state) {
+            return state.token;
         }
     }
 };

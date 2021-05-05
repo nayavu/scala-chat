@@ -14,8 +14,7 @@ GET     /visualization              controllers.Assets.at(path="/public", file="
 POST    /api/auth/login             controllers.AuthController.login
 POST    /api/auth/logout            controllers.AuthController.logout
 
-GET     /api/chat/messages          controllers.ChatController.getMessages
-GET     /api/chat/members           controllers.ChatController.getMembers
+GET     /api/members                controllers.MembersController.getMembers
 
 # WebSocket
 GET     /ws/chat                    controllers.ChatSocketController.chatSocket

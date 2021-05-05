@@ -12,7 +12,6 @@
 <script>
 import ChatMembersList from "@/components/chat/ChatMembersList";
 import ChatConversation from "@/components/chat/ChatConversation";
-import { chatService } from "@/services";
 
 export default {
   name: "ChatBox",
@@ -24,19 +23,9 @@ export default {
   },
 
   created() {
-    // connect to WebSocket
-    chatService.connect();
-
-    // load members and messages
-    // TODO: add spinners for both
+    // TODO: add spinner
     this.$store.dispatch('chat/loadMembers');
-    this.$store.dispatch('chat/loadMessages');
   },
-
-  unmounted() {
-    chatService.disconnect();
-  }
-
 }
 </script>
 

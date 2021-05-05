@@ -1,14 +1,16 @@
 package controllers
 
+import actors.ChatActor.Incoming
 import actors.{ChatActor, ChatManager}
 import akka.NotUsed
 import akka.actor.{ActorSystem, Props}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
-import models.Member
+import models.{Member, WebSocketEvent}
 import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.streams.ActorFlow
+import play.api.mvc.WebSocket.MessageFlowTransformer
 import play.api.mvc.{BaseController, ControllerComponents, RequestHeader, WebSocket}
 import services.AuthenticationService
 
@@ -21,21 +23,23 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
 
   val manager = system.actorOf(Props[ChatManager], "ChatManager")
 
+  implicit val messageFlowTransformer = MessageFlowTransformer.jsonMessageFlowTransformer[ChatActor.Incoming, ChatActor.Outgoing]
+
   private def logger = play.api.Logger(getClass)
 
-  def chatSocket: WebSocket = WebSocket.acceptOrResult[JsValue, JsValue] {
+  def chatSocket: WebSocket = WebSocket.acceptOrResult[ChatActor.Incoming, ChatActor.Outgoing] {
     case request if sameOriginCheck(request) => {
       authenticationCheck(request) match {
-        case member: Some[Member] => Future.successful {
+        case Some(member) => Future.successful {
           Right(
-            ActorFlow.actorRef[JsValue, JsValue] { out =>
-              ChatActor.props(out, manager, member.get.userId)
+            ActorFlow.actorRef[ChatActor.Incoming, ChatActor.Outgoing] { out =>
+              ChatActor.props(out, manager, member)
             }
           )
         }
-          
+
         case _ => Future.successful {
-          Left(Forbidden("forbidden"))
+          Left(Forbidden("Authentication failed"))
         }
       }
     }
@@ -48,8 +52,9 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
   }
 
   private def authenticationCheck(rh: RequestHeader): Option[Member] = {
-    println(rh.headers)
-    rh.headers.get("Authorization")
+    // the simplest possible authentication via protocol Sec-WebSocket-Protocol
+    // TODO: authenticate with the first message
+    rh.headers.get("Sec-WebSocket-Protocol")
       .flatMap(authenticationService.findSession)
   }
 }

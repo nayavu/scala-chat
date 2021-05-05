@@ -1,7 +1,7 @@
 package controllers
 
 import models.Member
-import play.api.Logging
+import play.api.{Configuration, Logging}
 import play.api.libs.json._
 import play.api.mvc.{BaseController, ControllerComponents, Request, Result}
 import services.AuthenticationService
@@ -16,7 +16,7 @@ object LoginRequest {
     (JsPath \ "username").read[String].map(new LoginRequest(_))
 }
 
-case class LoginResponse(member: Member, token: String, chatSocketUri: String)
+case class LoginResponse(member: Member, token: String, chatSocketUrl: String)
 
 object LoginResponse {
   implicit val recordWrites = new Writes[LoginResponse] {
@@ -24,18 +24,20 @@ object LoginResponse {
       Json.obj(
         "member" -> loginResponse.member,
         "token" -> loginResponse.token,
-        "chatSocketUri" -> loginResponse.chatSocketUri
+        "chatSocketUrl" -> loginResponse.chatSocketUrl
       )
     }
   }
 }
 
 @Singleton
-class AuthController @Inject()(val controllerComponents: ControllerComponents, authenticationService: AuthenticationService)
+class AuthController @Inject()(val controllerComponents: ControllerComponents, val configuration: Configuration, authenticationService: AuthenticationService)
                               (implicit executionContext: ExecutionContext) extends BaseController with Logging {
 
   import LoginRequest._
   import LoginResponse._
+
+  private val websocketHost = configuration.get[String]("app.websockets.host")
 
   def login() = Action(parse.json) { request =>
     parseJsonBody[LoginRequest](request) { loginRequest =>
@@ -43,7 +45,7 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents, a
         .map(memberWithToken => {
           val (member, token) = memberWithToken
           logger.info(s"User ${loginRequest.username} logged in")
-          Ok(Json.toJson(LoginResponse(member, token, routes.ChatSocketController.chatSocket().url)))
+          Ok(Json.toJson(LoginResponse(member, token, generateChatSocketUrl)))
         })
         .getOrElse(Unauthorized(errorMessage(s"User ${loginRequest.username} already logged in")))
     }
@@ -62,7 +64,7 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents, a
       .getOrElse(Unauthorized)
   }
 
-  def parseJsonBody[R](request: Request[JsValue])(block: R => Result)(implicit reads : Reads[R]): Result = {
+  private def parseJsonBody[R](request: Request[JsValue])(block: R => Result)(implicit reads : Reads[R]): Result = {
     request.body.validate[R](reads).fold(
       valid = block,
       invalid = e => {
@@ -72,7 +74,11 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents, a
     )
   }
 
-  def errorMessage(msg: String): JsValue = {
+  private def errorMessage(msg: String): JsValue = {
     Json.toJson(Map("message" -> msg))
+  }
+
+  private def generateChatSocketUrl: String = {
+    s"ws://${websocketHost}${routes.ChatSocketController.chatSocket().url}"
   }
 }

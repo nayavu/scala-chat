@@ -1,22 +1,23 @@
-import { checkResponse } from "@/services/utils";
-
-// TODO
-const API_URL = 'http://localhost:8080/api';
-const WEBSOCKET_URL = 'ws://localhost:8080/ws';
+const API_BASE_URL = '/api/members';
 
 // TODO: dial with 403 and other HTTP errors
 
 export class ChatService {
     newMessageCallback = null;
     messageDeliveredCallback = null;
-    updateMemberCallback = null;
+    memberStateChangedCallback = null;
     connectedCallback = null;
     disconnectedCallback = null;
 
     socket = null;
 
-    connect() {
-        this.socket = new WebSocket(WEBSOCKET_URL);
+    connect(chatSocketUrl, token) {
+        if (chatSocketUrl == null) {
+            return;
+        }
+        // the simplest possible authentication via 'Sec-WebSocket-Protocol' field
+        // TODO: implement via the first message
+        this.socket = new WebSocket(chatSocketUrl, token);
 
         this.socket.onopen = () => {
             console.log('Chat socket connected');
@@ -38,13 +39,11 @@ export class ChatService {
             }
         };
 
-        this.socket.onmessage = (data) => {
-            console.log("Socket data received: " + data);
-
-            const payload = JSON.parse(data);
+        this.socket.onmessage = (message) => {
+            const payload = JSON.parse(message.data);
             switch (payload.type) {
                 case 'NEW_MESSAGE':
-                    console.log('Received NEW_MESSAGE: ' + payload.data);
+                    console.log('Received NEW_MESSAGE', payload.data);
                     if (this.newMessageCallback) {
                         this.newMessageCallback({
                             messageId: payload.data.messageId,
@@ -57,10 +56,21 @@ export class ChatService {
                     }
                     break;
 
+                case 'MESSAGE_DELIVERED':
+                    console.log('Received MESSAGE_DELIVERED', payload.data);
+                    if (this.messageDeliveredCallback) {
+                        this.messageDeliveredCallback({
+                            messageId: payload.data.messageId,
+                            recipientId: payload.data.recipientId,
+                            timestamp: payload.data.timestamp,
+                        })
+                    }
+                    break;
+
                 case 'MEMBER_CONNECTED':
-                    console.log('Received MEMBER_CONNECTED: ' + payload.data);
-                    if (this.updateMemberCallback) {
-                        this.updateMemberCallback({
+                    console.log('Received MEMBER_CONNECTED', payload.data);
+                    if (this.memberStateChangedCallback) {
+                        this.memberStateChangedCallback({
                             userId: payload.data.userId,
                             nickname: payload.data.nickname,
                             onlineSince: payload.data.onlineSince,
@@ -69,9 +79,9 @@ export class ChatService {
                     break;
 
                 case 'MEMBER_DISCONNECTED':
-                    console.log('Received MEMBER_DISCONNECTED: ' + payload.data);
-                    if (this.updateMemberCallback) {
-                        this.updateMemberCallback({
+                    console.log('Received MEMBER_DISCONNECTED', + payload.data);
+                    if (this.memberStateChangedCallback) {
+                        this.memberStateChangedCallback({
                             userId: payload.data.userId,
                             nickname: payload.data.nickname,
                             onlineSince: null,
@@ -80,15 +90,15 @@ export class ChatService {
                     break;
 
                 case 'MEMBER_STARTED_TYPING':
-                    console.log('Received MEMBER_STARTED_TYPING: ' + payload.data);
+                    console.log('Received MEMBER_STARTED_TYPING', payload.data);
                     break;
 
                 case 'MEMBER_STOPPED_TYPING':
-                    console.log('Received MEMBER_STOPPED_TYPING: ' + payload.data);
+                    console.log('Received MEMBER_STOPPED_TYPING', payload.data);
                     break;
 
                 default:
-                    console.warn('Could not identify message: ' + payload);
+                    console.warn('Could not identify message', payload);
             }
         };
 
@@ -101,17 +111,27 @@ export class ChatService {
         this.socket.close();
 
         console.log('Chat socket disconnected');
-
     }
 
-    loadMembers() {
+    loadMembers(token) {
         console.log('Loading chat members list');
 
-        return fetch(API_URL + '/chat/members')
+        return fetch(API_BASE_URL,
+            {
+                headers: {
+                    'Authorization': token
+                }
+            }
+        )
             .then((response) => {
-                return checkResponse(response);
+                if (!response.ok) {
+                    return response.json()
+                        .then((res) => {
+                            throw new Error(res.message || 'Server communication failed');
+                        });
+                }
+                return response.json();
             })
-            .json();
 
         // Test data
         // return new Promise((resolve) => {
@@ -137,66 +157,10 @@ export class ChatService {
         // });
     }
 
-    loadMessages() {
-        console.log('Loading messages for the current user');
-
-        return fetch(API_URL + '/chat/messages')
-            .then((response) => {
-                return checkResponse(response);
-            })
-            .json();
-
-        // Test data
-        // return new Promise((resolve) => {
-        //     setTimeout(() => {
-        //         resolve(
-        //             {
-        //                 "1": [
-        //                     {
-        //                         "messageId": "1",
-        //                         "senderId": "1",
-        //                         "recipientId": "9",
-        //                         "message": "hello",
-        //                         "timestamp": Date.parse('2021-04-04T00:00:00Z'),
-        //                         "delivered": true
-        //                     },
-        //                     {
-        //                         "messageId": "2",
-        //                         "senderId": "9",
-        //                         "recipientId": "1",
-        //                         "message": "hello back",
-        //                         "timestamp": Date.parse('2021-04-04T01:00:00Z'),
-        //                         "delivered": true
-        //                     },
-        //                     {
-        //                         "messageId": "4",
-        //                         "senderId": "9",
-        //                         "recipientId": "1",
-        //                         "message": "hello back [2]",
-        //                         "timestamp": Date.parse('2021-04-04T01:00:00Z'),
-        //                         "delivered": false
-        //                     }
-        //                 ],
-        //                 "2": [
-        //                     {
-        //                         "messageId": "3",
-        //                         "senderId": "9",
-        //                         "recipientId": "2",
-        //                         "message": "hello!1111",
-        //                         "timestamp": Date.parse('2021-05-04T00:00:00Z'),
-        //                         "delivered": true
-        //                     },
-        //                 ]
-        //             }
-        //         );
-        //     }, 1000);
-        // });
-    }
-
     sendMessage(message) {
-        console.log(`Sending message ${message}`);
+        console.log(`Sending message from ${message.senderId} to ${message.recipientId}`);
 
-        if (this.socket) {
+        if (this.checkSocket()) {
             this.socket.send(JSON.stringify({
                 type: 'SEND_MESSAGE',
                 data: {
@@ -212,7 +176,8 @@ export class ChatService {
     notifyMemberStartedTyping(senderId, recipientId) {
         console.log(`Member ${senderId} started typing to ${recipientId}`);
 
-        if (this.socket) {
+        if (this.checkSocket()) {
+            console.log('Sending MEMBER_STARTED_TYPING')
             this.socket.send(JSON.stringify({
                 type: 'MEMBER_STARTED_TYPING',
                 data: {
@@ -223,10 +188,10 @@ export class ChatService {
         }
     }
 
-    notifyMemberStopperTyping(senderId, recipientId) {
+    notifyMemberStoppedTyping(senderId, recipientId) {
         console.log(`Member ${senderId} stopped typing to ${recipientId}`);
 
-        if (this.socket) {
+        if (this.checkSocket()) {
             this.socket.send(JSON.stringify({
                 type: 'MEMBER_STOPPED_TYPING',
                 data: {
@@ -235,6 +200,15 @@ export class ChatService {
                 }
             }));
         }
+    }
+
+    checkSocket() {
+        if (!this.socket || this.socket.readyState !== 1) {
+            // TODO notify user
+            console.error("Web socket is not opened");
+            return false;
+        }
+        return true;
     }
 
     onNewMessage(callback) {
@@ -247,8 +221,8 @@ export class ChatService {
         return this;
     }
 
-    onUpdateMember(callback) {
-        this.updateMemberCallback = callback;
+    onMemberStateChanged(callback) {
+        this.memberStateChangedCallback = callback;
         return this;
     }
 

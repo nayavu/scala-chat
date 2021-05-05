@@ -19,12 +19,14 @@ object ChatMessage {
     }
   }
 
-  implicit val chatMessageReads: Reads[ChatMessage] = (
-    (JsPath \ "messageId").read[String] and
+  implicit val chatMessageReads: Reads[ChatMessage] = {
+    val func = (JsPath \ "messageId").read[String] and
       (JsPath \ "senderId").read[String] and
       (JsPath \ "recipientId").read[String] and
       (JsPath \ "message").read[String] and
       (JsPath \ "timestamp").read[Long] and
       (JsPath \ "delivered").read[Boolean]
-    )(ChatMessage.apply _)
+
+    func(ChatMessage.apply _)
+  }
 }

@@ -25,7 +25,6 @@ export default {
       this.$store.dispatch({
         type: 'chat/addMessage',
 
-        userId: this.targetUserId,
         senderId: currentUserId,
         recipientId: this.targetUserId,
         message: this.$refs.message.value
@@ -41,7 +40,7 @@ export default {
         // TODO: detect more smartly the case when user essentially stopped typing but did not click outside of the input field
 
         const currentUserId = this.$store.getters['auth/userId'];
-        this.$store.dispatch('chat/notifyMemberStartedTyping', {
+        this.$store.dispatch('chat/notifyMemberStoppedTyping', {
           senderId: currentUserId,
           recipientId: this.targetUserId
         });
@@ -53,7 +52,7 @@ export default {
 
         const currentUserId = this.$store.getters['auth/userId'];
 
-        this.$store.dispatch('chat/notifyMemberStoppedTyping', {
+        this.$store.dispatch('chat/notifyMemberStartedTyping', {
           senderId: currentUserId,
           recipientId: this.targetUserId
         });

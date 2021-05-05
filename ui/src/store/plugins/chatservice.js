@@ -9,7 +9,7 @@ function createChatServicePlugin() {
             .onMessageDelivered(data => {
                 store.dispatch('chat/confirmDelivery', data)
             })
-            .onUpdateMember(data => {
+            .onMemberStateChanged(data => {
                 store.dispatch('chat/updateMember', data)
             })
             .onConnected(() => {
