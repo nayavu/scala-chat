@@ -3,14 +3,22 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-# An example controller showing a sample home page
-GET     /                           controllers.HomeController.index
-# An example controller showing how to use dependency injection
-GET     /count                      controllers.CountController.count
-# An example controller showing how to write asynchronous code
-GET     /message                    controllers.AsyncController.message
+# VueJS routes
+GET     /                           controllers.Assets.at(path="/public", file="index.html")
+GET     /login                      controllers.Assets.at(path="/public", file="index.html")
+GET     /chat                       controllers.Assets.at(path="/public", file="index.html")
+GET     /visualization              controllers.Assets.at(path="/public", file="index.html")
 
-# Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+# API
+## Authentication
+POST    /api/auth/login             controllers.AuthController.login
+POST    /api/auth/logout            controllers.AuthController.logout
 
-      
+GET     /api/chat/messages          controllers.ChatController.getMessages
+GET     /api/chat/members           controllers.ChatController.getMembers
+
+# WebSocket
+GET     /ws/chat                    controllers.ChatSocketController.chatSocket
+
+# Frontend static resources
+GET     /*file                      controllers.Assets.at(path="/public", file)

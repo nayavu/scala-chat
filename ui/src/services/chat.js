@@ -4,6 +4,8 @@ import { checkResponse } from "@/services/utils";
 const API_URL = 'http://localhost:8080/api';
 const WEBSOCKET_URL = 'ws://localhost:8080/ws';
 
+// TODO: dial with 403 and other HTTP errors
+
 export class ChatService {
     newMessageCallback = null;
     messageDeliveredCallback = null;

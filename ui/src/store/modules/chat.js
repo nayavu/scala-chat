@@ -73,8 +73,8 @@ export const chatStore = {
         },
 
         CONFIRM_DELIVERY(state, payload) {
-            // expected payload: {"userId": "1", "messageId": "2", "timestamp": "123424563"}
-            const userId = payload.userId;
+            // expected payload: {"recipientId": "1", "messageId": "2", "timestamp": "123424563"}
+            const userId = payload.recipientId;
             const messageIdx = findMessageIndex(state, userId, payload.messageId);
             if (messageIdx == null) {
                 return;
