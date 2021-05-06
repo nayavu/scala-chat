@@ -94,7 +94,8 @@ export const chatStore = {
         },
 
         UPDATE_MEMBER(state, payload) {
-            state.members[payload.userId] = payload;
+            const currentMember = state.members[payload.userId] || {};
+            state.members[payload.userId] = { ...currentMember, ...payload };
         },
 
         SET_MEMBER_ACTION(state, payload) {

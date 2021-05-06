@@ -1,6 +1,6 @@
 package actors
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Terminated}
 import models.{ChatMessage, Member}
 import play.api.libs.json.Json
 
@@ -15,10 +15,12 @@ class ChatManager extends Actor {
 
   override def receive: Receive = {
     case MemberConnected(member, memberActor) =>
+      logger.info(s"Member ${member.userId} connected")
       memberActors.values.foreach(_ ! ChatActor.Outgoing("MEMBER_CONNECTED", Json.toJson(member)))
       memberActors(member.userId) = memberActor
 
     case MemberDisconnected(userId) =>
+      logger.info(s"Member ${userId} disconnected")
       memberActors -= userId
       memberActors.values.foreach(_ ! ChatActor.Outgoing("MEMBER_DISCONNECTED", Json.obj("userId" -> userId)))
 

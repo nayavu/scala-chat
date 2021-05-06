@@ -27,6 +27,7 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
     case request if sameOriginCheck(request) => {
       authenticationCheck(request) match {
         case Some(member) => Future.successful {
+          logger.info(s"Chat socket for member ${member.userId} connected")
           Right(
             ActorFlow.actorRef[ChatActor.Incoming, ChatActor.Outgoing] { out =>
               ChatActor.props(out, manager, member)
@@ -35,6 +36,7 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
         }
 
         case _ => Future.successful {
+          logger.warn("Could not establish chat socket connection - authentication failed")
           Left(Forbidden("Authentication failed"))
         }
       }

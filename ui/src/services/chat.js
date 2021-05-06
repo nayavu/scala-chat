@@ -85,11 +85,10 @@ export class ChatService {
                     break;
 
                 case 'MEMBER_DISCONNECTED':
-                    console.log('Received MEMBER_DISCONNECTED', + payload.data);
+                    console.log('Received MEMBER_DISCONNECTED', payload.data);
                     if (this.memberStateChangedCallback) {
                         this.memberStateChangedCallback({
                             userId: payload.data.userId,
-                            nickname: payload.data.nickname,
                             onlineSince: null,
                         });
                     }

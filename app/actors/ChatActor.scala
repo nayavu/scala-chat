@@ -13,6 +13,10 @@ class ChatActor(out: ActorRef, manager: ActorRef, member: Member) extends Actor 
 
   manager ! ChatManager.MemberConnected(member, self)
 
+  override def postStop() = {
+    manager ! ChatManager.MemberDisconnected(member.userId)
+  }
+
   override def receive: Receive = {
     case outgoing: Outgoing => out ! outgoing
 
