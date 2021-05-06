@@ -3,9 +3,9 @@
     <li
         v-for="message in messagesList"
         :key="message.messageId"
-        :class="{'our-message': message.isOur, 'their-message': !message.isOur, 'undelivered': !message.delivered}"
+        :class="{'our-message': message.isOur, 'their-message': !message.isOur, 'unread': !message.readAt}"
     >
-      <span class="timestamp">{{ formatTimestamp(message.timestamp) }}</span>
+      <span class="timestamp">{{ formatTimestamp(message.sentAt) }}</span>
       <span class="placeholder"></span>
       {{ message.message }}
     </li>
@@ -16,23 +16,26 @@
 <script>
 export default {
   name: "ChatMessagesList",
-  props: ['targetUserId'],
+  props: ['targetMemberId'],
   computed: {
     messagesList() {
-      const currentUserId = this.$store.getters['auth/userId'];
-      const messages = this.$store.getters['chat/messages'][this.targetUserId];
-      if (!messages) {
-        return;
+      return this.$store.getters['messages/messages'](this.targetMemberId) || [];
+    }
+  },
+  watch: {
+    messagesList(newList) {
+      const currentMemberId = this.$store.getters['chat/memberId'];
+      const lastReadMessage = this.$store.getters['messages/lastReadMessage'](currentMemberId) || -1;
+
+      for (let i = lastReadMessage + 1; i < newList.length; i++) {
+        if (!newList[i].isOur) {
+          this.$store.dispatch('messages/markReceivedMessageAsRead', {messageId: newList[i].messageId, senderId: newList[i].senderId});
+        }
       }
-      return messages
-          .map((msg) => {
-            return {...msg, isOur: msg.senderId === currentUserId}
-          });
     }
   },
   methods: {
     formatTimestamp(timestamp) {
-      // TODO move into a helper
       return new Date(timestamp).toLocaleString();
     }
   }
@@ -73,7 +76,7 @@ span.placeholder {
   content: '»»';
 }
 
-.undelivered {
+.unread {
   color: #aaaaaa;
 }
 </style>

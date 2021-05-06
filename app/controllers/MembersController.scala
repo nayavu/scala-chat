@@ -16,7 +16,8 @@ class MembersController @Inject()(val controllerComponents: ControllerComponents
       .map(token => {
         memberRegistry.findSession(token) match {
           case Some(member) =>
-            Ok(Json.toJson(memberRegistry.listMembers().filter(_.userId != member.userId)))
+            Ok(Json.toJson(memberRegistry.listMembers().filter(_.memberId != member.memberId)))
+
           case None =>
             Unauthorized
         }

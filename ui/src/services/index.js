@@ -1,6 +1,6 @@
-import { AuthService } from "./auth";
-import { ChatService } from "./chat";
+import { MemberService } from "./member";
+import { ChatSocketService } from "@/services/chatsocket";
 
-const authService = new AuthService();
-const chatService = new ChatService();
-export { authService, chatService };
+const memberService = new MemberService();
+const chatSocketService = new ChatSocketService();
+export { memberService, chatSocketService };

@@ -1,4 +1,4 @@
-import actors.{ChatManager, VisualizationManager}
+import actors.{ChatManager}
 import com.google.inject.AbstractModule
 import play.api.libs.concurrent.AkkaGuiceSupport
 
@@ -11,7 +11,6 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bind(classOf[Clock]).toInstance(Clock.systemDefaultZone)
 
     bindActor[ChatManager]("ChatManager")
-    bindActor[VisualizationManager]("VisualizationManager")
   }
 
 }

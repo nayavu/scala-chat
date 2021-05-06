@@ -10,7 +10,7 @@ import scala.util.Random
 @Singleton
 class MemberRegistry @Inject()(clock: Clock) {
 
-  // userId => Member
+  // memberId => Member
   private val members = collection.mutable.HashMap[String, Member]()
 
   // token => Member
@@ -19,7 +19,7 @@ class MemberRegistry @Inject()(clock: Clock) {
   def join(username: String): Option[(Member, String)] = {
 
     val token = Random.alphanumeric.take(32).mkString("")
-    val generatedUserId = Random.alphanumeric.take(10).mkString("")
+    val generatedmemberId = Random.alphanumeric.take(10).mkString("")
 
     // long synchronized block to omit race conditions, TODO fix this
     this.synchronized {
@@ -29,27 +29,36 @@ class MemberRegistry @Inject()(clock: Clock) {
         return None
       }
 
-      val userId = existingMember.map(_.userId).getOrElse(generatedUserId)
+      val memberId = existingMember.map(_.memberId).getOrElse(generatedmemberId)
 
-      val member = Member(userId, username, Some(clock.instant.toEpochMilli))
-      members(userId) = member
-      sessions(token) = userId
+      val member = Member(memberId, username, Some(clock.instant.toEpochMilli))
+      members(memberId) = member
+      sessions(token) = memberId
 
       return Some((member, token))
     }
   }
 
-  def setMemberDisconnected(userId: String): Unit = {
+  def setMemberIsAway(memberId: String): Unit = {
     this.synchronized {
-      members.get(userId).map(existingMember =>
-        members(userId) = Member(userId, existingMember.nickname, None)
+      members.get(memberId).map(existingMember =>
+        members(memberId) = Member(memberId, existingMember.nickname, None)
       )
     }
   }
 
   def findSession(token: String): Option[Member] = {
     this.synchronized {
-      sessions.get(token).flatMap(members.get)
+      sessions.get(token) match {
+        case Some(memberId) =>
+          members.get(memberId).map(existingMember => {
+            val member = Member(memberId, existingMember.nickname, Some(System.currentTimeMillis()))
+            members(memberId) = member
+            member
+          })
+        case _ =>
+          None
+      }
     }
   }
 
@@ -64,11 +73,11 @@ class MemberRegistry @Inject()(clock: Clock) {
       sessions.get(token)
         .flatMap(members.get)
         .map { member =>
-          members -= member.userId
+          members -= member.memberId
           sessions -= token
 
-          member.userId
-      }
+          member.memberId
+        }
     }
   }
 }

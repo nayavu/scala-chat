@@ -3,8 +3,8 @@
     <li
         v-for="member of membersList"
         :key="member.id"
-        :class="{'online': member.onlineSince, 'offline': !member.onlineSince, 'selected': member.userId === targetUserId }"
-        @click="selectMember(member.userId)"
+        :class="{'online': member.onlineSince, 'offline': !member.onlineSince, 'selected': member.memberId === targetMemberId }"
+        @click="selectMember(member.memberId)"
         :title="getOnlineStatus(member)"
     >
       {{ member.nickname }}
@@ -16,19 +16,20 @@
 <script>
 export default {
   name: "ChatMembers",
-  emits: ['update:targetUserId'],
-  props: ['targetUserId'],
+  emits: ['update:targetMemberId'],
+  props: ['targetMemberId'],
   computed: {
     membersList() {
-      return Object.values(this.$store.getters['chat/members']).sort();
+      return Object.values(this.$store.getters['members/members'])
+          .sort((a, b) => a.nickname > b.nickname && 1 || -1);
     }
   },
   methods: {
     selectMember(id) {
-      this.$emit('update:targetUserId', id);
+      this.$emit('update:targetMemberId', id);
     },
     getOnlineStatus(member) {
-      return member.onlineSince ? 'Online since ' + (new Date(member.onlineSince).toLocaleDateString()) : 'Offline';
+      return member.onlineSince ? 'Online since ' + (new Date(member.onlineSince).toLocaleString()) : 'Offline';
     }
   }
 }

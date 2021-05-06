@@ -2,14 +2,14 @@
   <div class="form">
     <form @submit.prevent="doLogin">
       <div class="form-control">
-        <label for="username">Username:</label>
-        <input type="text" id="username" ref="username">
+        <label for="nickname">Nickname:</label>
+        <input type="text" id="nickname" ref="nickname">
       </div>
       <div class="form-message" v-if="errorMessage">
         <span class="error">{{ errorMessage }}</span>
       </div>
-      <div class="form-buttons">
-        <button>Login</button>
+      <div>
+        <button>Join</button>
       </div>
     </form>
   </div>
@@ -19,7 +19,7 @@
 
 
 export default {
-  name: "UserLogin",
+  name: "MemberLogin",
   data() {
     return {
       errorMessage: null
@@ -28,10 +28,10 @@ export default {
   methods: {
     async doLogin() {
       try {
-        await this.$store.dispatch('auth/login', { username: this.$refs.username.value });
+        await this.$store.dispatch('chat/join', { nickname: this.$refs.nickname.value });
         this.$router.push('/chat');
       } catch (e) {
-        this.errorMessage = e.message || 'Could not login';
+        this.errorMessage = e.message || 'Could not join the chat';
       }
     }
   }
@@ -78,9 +78,6 @@ input:focus {
 
 span.error {
   color: #FF0000;
-}
-
-.form-buttons {
 }
 
 

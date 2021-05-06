@@ -1,36 +1,53 @@
-import { chatService } from "@/services";
+import { chatSocketService } from "@/services";
 
 function createChatServicePlugin() {
     return (store) => {
-        chatService
+        chatSocketService
             .onNewMessage(data => {
-                store.dispatch('chat/receiveMessage', data)
+                store.dispatch('messages/receiveMessage', data);
+
+                // Reset 'typing' status (if any)
+                store.dispatch('members/setMemberStatus', { memberId: data.senderId, status: null });
             })
-            .onMessageDelivered(data => {
-                store.dispatch('chat/confirmDelivery', data)
+            .onMessageRead(data => {
+                store.dispatch('messages/markSentMessageAsRead', data)
             })
-            .onMemberStateChanged(data => {
-                store.dispatch('chat/updateMember', data)
+
+            .onStartedTyping(data => {
+                store.dispatch('members/setMemberStatus', { memberId: data.memberId, status: 'typing' });
             })
-            .onMemberStartedTyping(data => {
-                store.dispatch('chat/memberStartedTyping', data);
+            .onStoppedTyping(data => {
+                store.dispatch('members/setMemberStatus', { memberId: data.memberId, status: null });
             })
-            .onMemberStoppedTyping(data => {
-                store.dispatch('chat/memberStoppedTyping', data);
+
+            .onMemberJoined(data => {
+                store.dispatch('members/joinMember', data)
             })
-            .onConnected(() => {
+            .onMemberBecameAway(data => {
+                store.dispatch('members/markAsAway', data)
+            })
+            .onMemberLeft(data => {
+                store.dispatch('members/leaveMember', data)
+            })
+
+            .onSocketConnected(() => {
                 store.dispatch('chat/setSocketConnected');
             })
-            .onDisconnected(() => {
+            .onSocketDisconnected(() => {
                 store.dispatch('chat/setSocketDisconnected');
             })
-            .onError(() => {
-                store.dispatch('chat/socketError');
+            .onSocketError(() => {
+                store.dispatch('chat/setSocketError');
             });
 
         store.subscribe((mutation, state) => {
-            if (mutation.type === 'chat/ADD_MESSAGE' && state.chat.connected) {
-                chatService.sendMessage(mutation.payload);
+            if (!state.chat.connected) {
+                return;
+            }
+            if (mutation.type === 'messages/ADD_MESSAGE') {
+                chatSocketService.sendMessage(mutation.payload);
+            } else if (mutation.type === 'messages/MARK_RECEIVED_MESSAGE_AS_READ') {
+                chatSocketService.confirmMessageRead(mutation.payload.messageId, mutation.payload.senderId)
             }
         });
     }

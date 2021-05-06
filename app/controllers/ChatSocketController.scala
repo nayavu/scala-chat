@@ -4,7 +4,7 @@ import actors.ChatActor
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.Materializer
 import models.Member
-import models.events.{Incoming, Outgoing}
+import models.events.{Downstream, Upstream}
 import play.api.Configuration
 import play.api.libs.streams.ActorFlow
 import play.api.mvc.WebSocket.MessageFlowTransformer
@@ -21,17 +21,19 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
                                     (implicit ec: ExecutionContext, system: ActorSystem, mat: Materializer) extends BaseController
   with WebSocketSameOriginCheck {
 
-  implicit val messageFlowTransformer = MessageFlowTransformer.jsonMessageFlowTransformer[Incoming, Outgoing]
+  import models.events.Upstream._, models.events.Downstream._
+
+  implicit val messageFlowTransformer = MessageFlowTransformer.jsonMessageFlowTransformer[Upstream, Downstream]
 
   private def logger = play.api.Logger(getClass)
 
-  def webSocket: WebSocket = WebSocket.acceptOrResult[Incoming, Outgoing] {
-    case request if sameOriginCheck(request) => {
+  def chatSocket: WebSocket = WebSocket.acceptOrResult[Upstream, Downstream] {
+    case request if sameOriginCheck(request) =>
       authenticationCheck(request) match {
         case Some(member) => Future.successful {
-          logger.info(s"Chat socket for member ${member.userId} connected")
+          logger.info(s"Chat socket for member ${member.memberId} connected")
           Right(
-            ActorFlow.actorRef[Incoming, Outgoing] { out =>
+            ActorFlow.actorRef[Upstream, Downstream] { out =>
               ChatActor.props(out, chatManager, member)
             }
           )
@@ -42,7 +44,6 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
           Left(Forbidden("Authentication failed"))
         }
       }
-    }
 
     case rejected =>
       logger.error(s"Request ${rejected} failed same origin check")

@@ -5,33 +5,14 @@ import akka.actor.ActorRef
 import models.Member
 import play.api.{Configuration, Logging}
 import play.api.libs.json._
-import play.api.mvc.{BaseController, ControllerComponents, Request, Result}
+import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents, Request, Result}
 import services.MemberRegistry
 
 import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class LoginRequest(username: String)
-
-object LoginRequest {
-  implicit val loginRequestReads: Reads[LoginRequest] =
-    (JsPath \ "username").read[String].map(new LoginRequest(_))
-}
-
-case class LoginResponse(member: Member, token: String, chatSocketUrl: String, visualizationSockerUrl: String)
-
-object LoginResponse {
-  implicit val recordWrites = new Writes[LoginResponse] {
-    def writes(loginResponse: LoginResponse): JsValue = {
-      Json.obj(
-        "member" -> loginResponse.member,
-        "token" -> loginResponse.token,
-        "chatSocketUrl" -> loginResponse.chatSocketUrl,
-        "visualizationSockerUrl" -> loginResponse.visualizationSockerUrl,
-      )
-    }
-  }
-}
+case class JoinRequest(nickname: String)
+case class JoinResponse(member: Member, sessionToken: String, chatSocketUrl: String)
 
 @Singleton
 class AuthController @Inject()(val controllerComponents: ControllerComponents,
@@ -41,25 +22,24 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
                               )
                               (implicit executionContext: ExecutionContext) extends BaseController with Logging {
 
-  import LoginRequest._
-  import LoginResponse._
+  implicit val joinRequestReads: Reads[JoinRequest] = Json.reads[JoinRequest]
+  implicit val joinResponseWrites: Writes[JoinResponse] = Json.writes[JoinResponse]
 
   private val websocketHost = configuration.get[String]("app.websockets.host")
 
-  def login() = Action(parse.json) { request =>
-    parseJsonBody[LoginRequest](request) { loginRequest =>
-      memberRegistry.join(loginRequest.username)
-        .map(memberWithToken => {
-          val (member, token) = memberWithToken
-          logger.info(s"User ${loginRequest.username} logged in")
-          Ok(Json.toJson(LoginResponse(member, token, generateChatSocketUrl, generateVisualizationSocketUrl)))
+  def join() = Action(parse.json) { request =>
+    parseJsonBody[JoinRequest](request) { joinRequest =>
+      memberRegistry.join(joinRequest.nickname)
+        .map(memberWithTokens => {
+          val (member, token) = memberWithTokens
+          logger.info(s"Member ${joinRequest.nickname} joined")
+          Ok(Json.toJson(JoinResponse(member, token, generateChatSocketUrl)))
         })
-        .getOrElse(Unauthorized(errorMessage(s"User ${loginRequest.username} already logged in")))
+        .getOrElse(Unauthorized(errorMessage(s"Name '${joinRequest.nickname}' is already taken")))
     }
   }
 
-  def logout() = Action { request =>
-
+  def leave() = Action { request =>
     request.headers.get("Authorization")
       .map(token => {
         memberRegistry.leave(token) match {
@@ -67,10 +47,10 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
             chatManager ! ChatManager.MemberLeft(userId)
             NoContent
           case _ =>
-            Unauthorized
+            Unauthorized(errorMessage(s"Invalid session"))
         }
       })
-      .getOrElse(Unauthorized)
+      .getOrElse(Unauthorized(errorMessage(s"No session token")))
   }
 
   private def parseJsonBody[R](request: Request[JsValue])(block: R => Result)(implicit reads : Reads[R]): Result = {
@@ -88,10 +68,6 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
   }
 
   private def generateChatSocketUrl: String = {
-    s"ws://${websocketHost}${routes.ChatSocketController.webSocket().url}"
-  }
-
-  private def generateVisualizationSocketUrl: String = {
-    s"ws://${websocketHost}${routes.VisualizationSocketController.webSocket().url}"
+    s"ws://${websocketHost}${routes.ChatSocketController.chatSocket().url}"
   }
 }

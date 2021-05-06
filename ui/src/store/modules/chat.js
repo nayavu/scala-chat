@@ -1,239 +1,154 @@
-import { chatService } from "@/services";
-
-function findMessageIndex(state, userId, messageId) {
-    if (!state.messages[userId]) {
-        console.warn(`No conversation with ${userId}`);
-        return null;
-    }
-
-    // search from the tail of the array
-    // this method is mainly used to confirm delivery of the message which is most likely the last message in the array
-    for (let i = state.messages[userId].length - 1; i >=0; i--) {
-        if (state.messages[userId][i].messageId === messageId) {
-            return i;
-        }
-    }
-    console.warn(`No message with id=${messageId} in conversation with ${userId}`);
-    return null;
-}
+import { memberService, chatSocketService } from "@/services";
 
 export const chatStore = {
     namespaced: true,
 
     state() {
         return {
-            // A map of userId => Member,
-            // {
-            //    "1" : { userId: "1", nickname: 'Member1', onlineSince: 123456 }
-            // }
-            members: {},
+            memberId: null,
+            nickname: null,
+            chatSocketUrl: null,
+            sessionToken: null,
 
-            // Member actions map
-            // { "userId": "typing" }
-            memberActions: {},
+            connected: false,
 
-            // Map of userId => list of Messages
-            // {
-            //   "1": [{
-            //     messageId: "1",
-            //     senderId: "1",
-            //     recipientId: "9",
-            //     message: "hello",
-            //     timestamp: 12345677890,
-            //     delivered: true
-            //   }]
-            // }
-
-            messages: {},
-            connected: false
+            notification: {
+                text: null,
+                level: null
+            }
         };
     },
 
     mutations: {
-        // -- messages
-
-        // RECEIVE_MESSAGE is used by websocket plugin to receive chat messages
-        RECEIVE_MESSAGE(state, payload) {
-            // expected payload:
-            // {"messageId": "2", "senderId": "999", "recipientId": "1", "message": "aaa", "timestamp":"12345678", "delivered": true}
-            const userId = payload.senderId;
-            if (!state.messages[userId]) {
-                state.messages[userId] = [];
-            }
-            state.messages[userId].push(payload);
+        SET_SESSION(state, payload) {
+            state.memberId = payload?.member?.memberId;
+            state.nickname = payload?.member?.nickname;
+            state.sessionToken = payload?.sessionToken;
+            state.chatSocketUrl = payload?.chatSocketUrl;
         },
 
-        // ADD_MESSAGE is used by the UI to append chat messages. Also it is listened by websocket plugin
-        ADD_MESSAGE(state, payload) {
-            // expected payload:
-            // {"messageId": "2", "senderId": "999", "recipientId": "1", "message": "aaa", "timestamp":"12345678"}
-            const userId = payload.recipientId;
-            if (!state.messages[userId]) {
-                state.messages[userId] = [];
-            }
-            state.messages[userId].push({ ...payload, delivered: false });
-
+        SET_CONNECTED(state, connected) {
+            state.connected = connected;
         },
 
-        CONFIRM_DELIVERY(state, payload) {
-            // expected payload: {"recipientId": "1", "messageId": "2", "timestamp": "123424563"}
-            const userId = payload.recipientId;
-            const messageIdx = findMessageIndex(state, userId, payload.messageId);
-            if (messageIdx == null) {
-                return;
-            }
-
-            state.messages[userId][messageIdx].delivered = true;
-            state.messages[userId][messageIdx].timestamp = payload.timestamp;
-        },
-
-        // -- members
-
-        SET_MEMBERS(state, payload) {
-            state.members = payload;
-        },
-
-        UPDATE_MEMBER(state, payload) {
-            const currentMember = state.members[payload.userId] || {};
-            state.members[payload.userId] = { ...currentMember, ...payload };
-        },
-
-        REMOVE_MEMBER(state, payload) {
-            delete state.members[payload.userId];
-            delete state.memberActions[payload.userId];
-        },
-
-        SET_MEMBER_ACTION(state, payload) {
-            state.memberActions[payload.userId] = payload.action;
-        },
-
-        // -- socket state
-
-        SET_CONNECTED_STATE(state, payload) {
-            state.connected = payload;
-        },
-
-    },
-
-    getters: {
-        members(state) {
-            return state.members;
-        },
-        memberActions(state) {
-            return state.memberActions;
-        },
-        messages(state) {
-            return state.messages;
-        },
-        connected(state) {
-            return state.connected
+        SET_NOTIFICATION(state, payload) {
+            state.notification = payload;
         }
     },
 
     actions: {
-        // -- members
-        async loadMembers(context) {
-            const token = context.rootGetters['auth/token'];
-            const membersList = await chatService.loadMembers(token);
-            const members = membersList.reduce((map, item) => { map[item.userId] = item; return map }, {});
-            context.commit('SET_MEMBERS', members);
-        },
+        async loadSession(context) {
+            const memberId = localStorage.getItem('memberId');
+            const nickname = localStorage.getItem('nickname');
+            const sessionToken = localStorage.getItem('sessionToken');
+            const chatSocketUrl = localStorage.getItem('chatSocketUrl');
 
-        updateMember(context, payload) {
-            // payload is expected to be a member object
-            switch (payload.state) {
-                case 'connected':
-                    context.commit('UPDATE_MEMBER', {
-                        userId: payload.userId,
-                        nickname: payload.nickname,
-                        onlineSince: payload.onlineSince,
-                    });
-                    break;
-
-                case 'disconnected':
-                    context.commit('UPDATE_MEMBER', {
-                        userId: payload.userId,
-                        onlineSince: null,
-                    });
-                    break;
-
-                case 'left':
-                    context.commit('REMOVE_MEMBER', {
-                        userId: payload.userId,
-                    });
-                    break;
+            if (!memberId || !nickname || !sessionToken || !chatSocketUrl) {
+                if (memberId || nickname || sessionToken || chatSocketUrl) {
+                    await context.dispatch('clearSession');
+                }
+                return null;
             }
 
+            context.commit('SET_SESSION', {
+                member: { memberId, nickname },
+                sessionToken,
+                chatSocketUrl
+            });
+
+            chatSocketService.connect(context.state.chatSocketUrl, context.state.sessionToken);
+            // TODO
+            // there might be a case when session sessionToken is invalid
+            // while establishing a WebSocket connection with it, there will be a lot of error messages in console
         },
 
-        memberStartedTyping(context, payload) {
-            context.commit('SET_MEMBER_ACTION', { userId: payload.userId, action: 'typing' });
+        clearSession() {
+            localStorage.removeItem('memberId');
+            localStorage.removeItem('nickname');
+            localStorage.removeItem('sessionToken');
+            localStorage.removeItem('chatSocketUrl');
         },
 
-        memberStoppedTyping(context, payload) {
-            context.commit('SET_MEMBER_ACTION', { userId: payload.userId, action: null });
+        async join(context, payload) {
+            const nickname = payload.nickname;
+            console.log(`Joining the chat as ${nickname}`);
+
+            const session = await memberService.join(nickname);
+            context.commit('SET_SESSION', session);
+
+            chatSocketService.connect(context.state.chatSocketUrl, context.state.sessionToken);
+
+            localStorage.setItem('memberId', context.state.memberId);
+            localStorage.setItem('nickname', context.state.nickname);
+            localStorage.setItem('sessionToken', context.state.sessionToken);
+            localStorage.setItem('chatSocketUrl', context.state.chatSocketUrl);
         },
 
-        // -- messages
+        async leave(context) {
+            console.log('Leaving the chat');
 
-        receiveMessage(context, payload) {
-            context.commit('RECEIVE_MESSAGE', payload);
-            context.commit('SET_MEMBER_ACTION', { userId: payload.senderId, action: null });
+            chatSocketService.disconnect();
+            await memberService.leave(context.state.sessionToken);
+
+            context.commit('SET_SESSION', null);
+            await context.dispatch('clearSession');
         },
-
-        addMessage(context, payload) {
-            const messagePayload = {
-                ...payload,
-                messageId: Date.now().toString() + window.performance.now(), // quite stupid way of generating unique id
-                timestamp: Date.now()
-            }
-
-            context.commit('ADD_MESSAGE', messagePayload);
-        },
-
-        confirmDelivery(context, payload) {
-            context.commit('CONFIRM_DELIVERY', payload);
-        },
-
-        // -- socket state
 
         setSocketConnected(context) {
-            context.commit('SET_CONNECTED_STATE', true);
+            context.commit('SET_CONNECTED', true);
         },
 
         setSocketDisconnected(context) {
             const wasConnected = context.state.connected;
-            context.commit('SET_CONNECTED_STATE', false);
+            context.commit('SET_CONNECTED', false);
 
             if (wasConnected) {
                 // seems like server shut down
-                context.commit('SET_NOTIFICATION', { message: 'Server connection lost', level: 'error' }, { root: true });
+                context.commit('SET_NOTIFICATION', { text: 'Server connection lost', level: 'error' });
             } else {
                 // normally disconnected or not previously connected
-                context.commit('SET_NOTIFICATION', null, { root: true });
+                context.commit('SET_NOTIFICATION', null);
             }
         },
 
-        // -- misc
-
-        notifyMemberStartedTyping(_, payload) {
-            // it has nothing to do with store, it just wraps service call (for code consistency)
-            chatService.notifyMemberStartedTyping(payload.senderId, payload.recipientId);
-        },
-
-        notifyMemberStoppedTyping(_, payload) {
-            // it has nothing to do with store, it just wraps service call (for code consistency)
-            chatService.notifyMemberStoppedTyping(payload.senderId, payload.recipientId);
-        },
-
-        socketError(context) {
+        setSocketError(context) {
             if (!context.state.connected) {
-                console.log('Forcing logging out')
-                context.dispatch('auth/logout', null, { root: true });
+                context.dispatch('leave', null);
                 // looks like there was no successful connection attempt (maybe invalid session?)
 
                 // TODO there might be more edge cases, think of them
             }
+        },
+
+        notifyMemberStartedTyping(_, recipientId) {
+            chatSocketService.notifyMemberStartedTyping(recipientId);
+        },
+
+        notifyMemberStoppedTyping(_, recipientId) {
+            // it has nothing to do with store, it just wraps service call (for code consistency)
+            chatSocketService.notifyMemberStoppedTyping(recipientId);
+        },
+    },
+
+    getters: {
+        isAuthenticated(state) {
+            return !!state.sessionToken;
+        },
+
+        memberId(state) {
+            return state.memberId;
+        },
+
+        nickname(state) {
+            return state.nickname;
+        },
+
+        sessionToken(state) {
+            return state.sessionToken;
+        },
+
+        connected(state) {
+            return state.connected;
         }
     }
 };

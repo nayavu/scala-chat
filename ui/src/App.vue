@@ -7,11 +7,11 @@
       <the-navigator v-if="isAuthenticated"></the-navigator>
     </div>
     <div>
-      <user-info v-if="isAuthenticated"></user-info>
+      <member-info v-if="isAuthenticated"></member-info>
     </div>
   </header>
   <main>
-    <the-notification v-if="notification" :message="notification.message" :level="notification.level"></the-notification>
+    <the-notification v-if="notification" :message="notification.text" :level="notification.level"></the-notification>
 
     <router-view></router-view>
   </main>
@@ -20,23 +20,23 @@
 <script>
 
 import TheNavigator from "@/components/layout/TheNavigator";
-import UserInfo from "@/components/layout/UserInfo";
 import TheNotification from "@/components/layout/TheNotification";
+import MemberInfo from "@/components/layout/MemberInfo";
 
 export default {
   name: 'App',
   components: {
+    MemberInfo,
     TheNotification,
-    UserInfo,
     TheNavigator
   },
   async created() {
     // load from LocalStore previously saved session (if any)
-    await this.$store.dispatch('auth/loadSession');
+    await this.$store.dispatch('chat/loadSession');
   },
   computed: {
     isAuthenticated() {
-      return this.$store.getters['auth/isAuthenticated'];
+      return this.$store.getters['chat/isAuthenticated'];
     },
     notification() {
       return this.$store.getters.notification;

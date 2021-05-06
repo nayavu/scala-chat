@@ -1,10 +1,10 @@
 <template>
   <div class="chat-box">
     <div class="chat-members-list">
-      <chat-members-list v-model:target-user-id="targetUserId"></chat-members-list>
+      <chat-members-list v-model:target-member-id="targetMemberId"></chat-members-list>
     </div>
     <div class="chat-conversation">
-      <chat-conversation v-if="targetUser" :target-user="targetUser" :disabled="disabled"></chat-conversation>
+      <chat-conversation v-if="targetMember" :target-member="targetMember" :disabled="disabled"></chat-conversation>
     </div>
   </div>
 </template>
@@ -18,20 +18,20 @@ export default {
   components: {ChatConversation, ChatMembersList},
   data() {
     return {
-      targetUserId: null
+      targetMemberId: null
     }
   },
   computed: {
-    targetUser() {
-      return this.$store.getters['chat/members'][this.targetUserId];
+    targetMember() {
+      return this.$store.getters['members/members'][this.targetMemberId];
     },
     disabled() {
-      return !this.$store.getters['chat/connected'] || !this.targetUser?.onlineSince;
+      return !this.$store.getters['chat/connected'] || !this.targetMember?.onlineSince;
     }
   },
   created() {
     // TODO: add spinner
-    this.$store.dispatch('chat/loadMembers');
+    this.$store.dispatch('members/loadMembers');
   },
 }
 </script>

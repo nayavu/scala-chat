@@ -9,7 +9,7 @@
 
 export default {
   name: "ChatInput",
-  props: ['targetUserId', 'disabled'],
+  props: ['targetMemberId', 'disabled'],
   data() {
     return {
       isTyping: false,
@@ -18,13 +18,13 @@ export default {
   },
   methods: {
     async submit() {
-      const currentUserId = this.$store.getters['auth/userId'];
+      const currentMemberId = this.$store.getters['chat/memberId'];
 
       this.$store.dispatch({
-        type: 'chat/addMessage',
+        type: 'messages/addMessage',
 
-        senderId: currentUserId,
-        recipientId: this.targetUserId,
+        senderId: currentMemberId,
+        recipientId: this.targetMemberId,
         message: this.$refs.message.value
       });
 
@@ -34,25 +34,13 @@ export default {
     blur() {
       if (this.isTyping) {
         this.isTyping = false;
-        // TODO: detect more smartly the case when user essentially stopped typing but did not click outside of the input field
-
-        const currentUserId = this.$store.getters['auth/userId'];
-        this.$store.dispatch('chat/notifyMemberStoppedTyping', {
-          senderId: currentUserId,
-          recipientId: this.targetUserId
-        });
+        this.$store.dispatch('chat/notifyMemberStoppedTyping', this.targetMemberId);
       }
     },
     keypress() {
       if (!this.isTyping) {
         this.isTyping = true;
-
-        const currentUserId = this.$store.getters['auth/userId'];
-
-        this.$store.dispatch('chat/notifyMemberStartedTyping', {
-          senderId: currentUserId,
-          recipientId: this.targetUserId
-        });
+        this.$store.dispatch('chat/notifyMemberStartedTyping', this.targetMemberId);
       }
     }
   }

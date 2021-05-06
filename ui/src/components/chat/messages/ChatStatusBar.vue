@@ -1,11 +1,11 @@
 <template>
-  <span>{{ notification }}</span>
+  <span>{{ statusText }}</span>
 </template>
 
 <script>
 export default {
-  name: "ChatNotification",
-  props: ['notification']
+  name: "ChatStatusBar",
+  props: ['statusText']
 }
 </script>
 

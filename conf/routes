@@ -11,14 +11,13 @@ GET     /visualization              controllers.Assets.at(path="/public", file="
 
 # API
 ## Authentication
-POST    /api/auth/login             controllers.AuthController.login
-POST    /api/auth/logout            controllers.AuthController.logout
+POST    /api/auth/join              controllers.AuthController.join
+POST    /api/auth/leave             controllers.AuthController.leave
 
 GET     /api/members                controllers.MembersController.getMembers
 
 # WebSocket
-GET     /ws/chat                    controllers.ChatSocketController.webSocket
-GET     /ws/visualization           controllers.VisualizationSocketController.webSocket
+GET     /ws/chat                    controllers.ChatSocketController.chatSocket
 
 # Frontend static resources
 GET     /*file                      controllers.Assets.at(path="/public", file)

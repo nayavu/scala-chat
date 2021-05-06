@@ -1,24 +1,9 @@
 package models
 
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json._
+import play.api.libs.json.{Format, Json}
 
-case class Member(userId: String, nickname: String, onlineSince: Option[Long])
+case class Member(memberId: String, nickname: String, onlineSince: Option[Long])
 
 object Member {
-  implicit val recordWrites = new Writes[Member] {
-    def writes(member: Member): JsValue = {
-      Json.obj(
-        "userId" -> member.userId,
-        "nickname" -> member.nickname,
-        "onlineSince" -> member.onlineSince
-      )
-    }
-  }
-
-  implicit val memberReads: Reads[Member] = (
-    (JsPath \ "nickname").read[String] and
-      (JsPath \ "nickname").read[String] and
-      (JsPath \ "onlineSince").readNullable[Long]
-    )(Member.apply _)
+  implicit val memberFormat: Format[Member] = Json.format[Member]
 }

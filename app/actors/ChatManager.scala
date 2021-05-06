@@ -1,9 +1,8 @@
 package actors
 
 import akka.actor.{Actor, ActorRef}
-import models.events.Outgoing
-import models.{ChatMessage, Member}
-import play.api.libs.json.Json
+import models.{Member,ChatMessage}
+import models.events._
 import services.MemberRegistry
 
 import javax.inject.Inject
@@ -17,42 +16,65 @@ class ChatManager @Inject()(memberRegistry: MemberRegistry) extends Actor {
   private val memberActors = mutable.Map.empty[String, ActorRef]
 
   override def receive: Receive = {
-    case MemberConnected(member, memberActor) =>
-      logger.info(s"Member ${member.userId} connected")
-      memberActors.values.foreach(_ ! Outgoing("MEMBER_CONNECTED", Json.toJson(member)))
-      memberActors(member.userId) = memberActor
+    case MemberJoined(member, memberActor) =>
+      logger.info(s"Member ${member.memberId} joined")
+      memberActors.filterKeys(_ != member.memberId)
+        .values
+        .foreach(_ ! DownstreamMemberJoined(member.memberId, member.nickname, member.onlineSince))
 
-    case MemberDisconnected(userId) =>
-      logger.info(s"Member ${userId} disconnected")
-      memberActors -= userId
-      memberActors.values.foreach(_ ! Outgoing("MEMBER_DISCONNECTED", Json.obj("userId" -> userId)))
+      memberActors(member.memberId) = memberActor
 
-      // TODO this is blockign call, fix this
-      memberRegistry.setMemberDisconnected(userId)
+    case MemberIsAway(memberId) =>
+      logger.info(s"Member ${memberId} is away")
+      memberActors -= memberId
+      memberActors.values.foreach(_ ! DownstreamMemberIsAway(memberId))
 
-    case MemberLeft(userId) =>
-      logger.info(s"Member ${userId} left")
-      memberActors -= userId
-      memberActors.values.foreach(_ ! Outgoing("MEMBER_LEFT", Json.obj("userId" -> userId)))
+      // TODO this is blocking call, consider using actors instead of service
+      memberRegistry.setMemberIsAway(memberId)
+
+    case MemberLeft(memberId) =>
+      logger.info(s"Member ${memberId} left")
+      memberActors -= memberId
+      memberActors.values.foreach(_ ! DownstreamMemberLeft(memberId))
 
     case NewMessage(msg) =>
-      memberActors.get(msg.recipientId).foreach(_ ! Outgoing("NEW_MESSAGE", Json.toJson(msg)))
+      memberActors.get(msg.recipientId)
+        .foreach(_ ! DownstreamNewMessage(msg.messageId, msg.senderId, msg.message, msg.timestamp))
+
+      // TODO it's inefficient to send a `trace` message for senderId and recipientId because they already have this event
+      memberActors.values
+        .foreach(_ ! DownstreamNewMessageTrace(msg.senderId, msg.recipientId))
+
+    case MessageRead(messageId, senderId, recipientId) =>
+      memberActors.get(senderId)
+        .foreach(_ ! DownstreamMessageRead(messageId, recipientId, System.currentTimeMillis()))
 
     case MemberStartedTyping(senderId, recipientId) =>
-      memberActors.get(recipientId).foreach(_ ! Outgoing("MEMBER_STARTED_TYPING", Json.obj("userId" -> senderId)))
+      memberActors.get(recipientId)
+        .foreach(_ ! DownstreamStartedTyping(senderId))
+
+      // TODO it's inefficient to send a `trace` messag for senderId and recipientId because they already have this event
+      memberActors.values
+        .foreach(_ ! DownstreamStartedTypingTrace(senderId, recipientId))
 
     case MemberStoppedTyping(senderId, recipientId) =>
-      memberActors.get(recipientId).foreach(_ ! Outgoing("MEMBER_STOPPED_TYPING", Json.obj("userId" -> senderId)))
+      memberActors.get(recipientId)
+        .foreach(_ ! DownstreamStoppedTyping(senderId))
+
+      // TODO it's inefficient to send a `trace` message for senderId and recipientId because they already have this event
+      memberActors.values
+        .foreach(_ ! DownstreamStoppedTypingTrace(senderId, recipientId))
 
     case m => logger.warn(s"Unhandled message ${m}")
   }
 }
 
 object ChatManager {
-  case class MemberConnected(member: Member, memberActor: ActorRef)
-  case class MemberDisconnected(userId: String)
-  case class MemberLeft(userId: String)
+  case class NewMessage(chatMessage: ChatMessage)
+  case class MessageRead(messageId: String, senderId: String, recipientId: String)
   case class MemberStartedTyping(senderId: String, recipientId: String)
   case class MemberStoppedTyping(senderId: String, recipientId: String)
-  case class NewMessage(chatMessage: ChatMessage)
+  case class MemberJoined(member: Member, memberActor: ActorRef)
+  case class MemberIsAway(userId: String)
+  case class MemberLeft(userId: String)
 }
