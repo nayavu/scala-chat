@@ -98,6 +98,11 @@ export const chatStore = {
             state.members[payload.userId] = { ...currentMember, ...payload };
         },
 
+        REMOVE_MEMBER(state, payload) {
+            delete state.members[payload.userId];
+            delete state.memberActions[payload.userId];
+        },
+
         SET_MEMBER_ACTION(state, payload) {
             state.memberActions[payload.userId] = payload.action;
         },
@@ -136,7 +141,29 @@ export const chatStore = {
 
         updateMember(context, payload) {
             // payload is expected to be a member object
-            context.commit('UPDATE_MEMBER', payload);
+            switch (payload.state) {
+                case 'connected':
+                    context.commit('UPDATE_MEMBER', {
+                        userId: payload.userId,
+                        nickname: payload.nickname,
+                        onlineSince: payload.onlineSince,
+                    });
+                    break;
+
+                case 'disconnected':
+                    context.commit('UPDATE_MEMBER', {
+                        userId: payload.userId,
+                        onlineSince: null,
+                    });
+                    break;
+
+                case 'left':
+                    context.commit('REMOVE_MEMBER', {
+                        userId: payload.userId,
+                    });
+                    break;
+            }
+
         },
 
         memberStartedTyping(context, payload) {
@@ -201,6 +228,7 @@ export const chatStore = {
 
         socketError(context) {
             if (!context.state.connected) {
+                console.log('Forcing logging out')
                 context.dispatch('auth/logout', null, { root: true });
                 // looks like there was no successful connection attempt (maybe invalid session?)
 

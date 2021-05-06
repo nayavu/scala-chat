@@ -30,7 +30,9 @@ export const authStore = {
             const chatSocketUrl = localStorage.getItem('chatSocketUrl');
 
             if (!userId || !nickname || !token || !chatSocketUrl) {
-                await context.dispatch('clearSession');
+                if (userId || nickname || token || chatSocketUrl) {
+                    await context.dispatch('clearSession');
+                }
                 return null;
             }
 
@@ -57,10 +59,12 @@ export const authStore = {
             console.log('Logging out');
 
             chatService.disconnect();
+            await authService.logout(context.state.token);
+            console.log('cleaing session');
+            context.commit('SET_SESSION', null);
             await context.dispatch('clearSession');
 
-            await authService.logout(context.state.token);
-            context.commit('SET_SESSION', null);
+
         },
 
         async login(context, payload) {

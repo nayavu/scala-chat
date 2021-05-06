@@ -30,6 +30,12 @@ export class AuthService {
             headers: {
                 'Authorization': token
             }
+        }).then((response) => {
+            if (!response.ok) {
+                // ignore any error during logout
+                return;
+            }
+            return response;
         });
 
         // Test data

@@ -80,6 +80,7 @@ export class ChatService {
                             userId: payload.data.userId,
                             nickname: payload.data.nickname,
                             onlineSince: payload.data.onlineSince,
+                            state: 'connected'
                         });
                     }
                     break;
@@ -89,7 +90,17 @@ export class ChatService {
                     if (this.memberStateChangedCallback) {
                         this.memberStateChangedCallback({
                             userId: payload.data.userId,
-                            onlineSince: null,
+                            state: 'disconnected'
+                        });
+                    }
+                    break;
+
+                case 'MEMBER_LEFT':
+                    console.log('Received MEMBER_LEFT', payload.data);
+                    if (this.memberStateChangedCallback) {
+                        this.memberStateChangedCallback({
+                            userId: payload.data.userId,
+                            state: 'left'
                         });
                     }
                     break;

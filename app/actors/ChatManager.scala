@@ -24,6 +24,11 @@ class ChatManager extends Actor {
       memberActors -= userId
       memberActors.values.foreach(_ ! ChatActor.Outgoing("MEMBER_DISCONNECTED", Json.obj("userId" -> userId)))
 
+    case MemberLeft(userId) =>
+      logger.info(s"Member ${userId} left")
+      memberActors -= userId
+      memberActors.values.foreach(_ ! ChatActor.Outgoing("MEMBER_LEFT", Json.obj("userId" -> userId)))
+
     case NewMessage(msg) =>
       memberActors.get(msg.recipientId).foreach(_ ! ChatActor.Outgoing("NEW_MESSAGE", Json.toJson(msg)))
 
@@ -40,6 +45,7 @@ class ChatManager extends Actor {
 object ChatManager {
   case class MemberConnected(member: Member, memberActor: ActorRef)
   case class MemberDisconnected(userId: String)
+  case class MemberLeft(userId: String)
   case class MemberStartedTyping(senderId: String, recipientId: String)
   case class MemberStoppedTyping(senderId: String, recipientId: String)
   case class NewMessage(chatMessage: ChatMessage)

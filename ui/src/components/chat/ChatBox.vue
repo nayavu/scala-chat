@@ -4,7 +4,7 @@
       <chat-members-list v-model:target-user-id="targetUserId"></chat-members-list>
     </div>
     <div class="chat-conversation">
-      <chat-conversation v-if="targetUserId" :target-user-id="targetUserId" :disabled="disabled"></chat-conversation>
+      <chat-conversation v-if="targetUser" :target-user="targetUser" :disabled="disabled"></chat-conversation>
     </div>
   </div>
 </template>
@@ -22,8 +22,11 @@ export default {
     }
   },
   computed: {
+    targetUser() {
+      return this.$store.getters['chat/members'][this.targetUserId];
+    },
     disabled() {
-      return !this.$store.getters['chat/connected'] || !this.$store.getters['chat/members'][this.targetUserId].onlineSince;
+      return !this.$store.getters['chat/connected'] || !this.targetUser?.onlineSince;
     }
   },
   created() {

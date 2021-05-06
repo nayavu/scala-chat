@@ -1,12 +1,14 @@
 package controllers
 
+import actors.ChatManager
+import akka.actor.ActorRef
 import models.Member
 import play.api.{Configuration, Logging}
 import play.api.libs.json._
 import play.api.mvc.{BaseController, ControllerComponents, Request, Result}
 import services.AuthenticationService
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.ExecutionContext
 
 case class LoginRequest(username: String)
@@ -31,7 +33,11 @@ object LoginResponse {
 }
 
 @Singleton
-class AuthController @Inject()(val controllerComponents: ControllerComponents, val configuration: Configuration, authenticationService: AuthenticationService)
+class AuthController @Inject()(val controllerComponents: ControllerComponents,
+                               val configuration: Configuration,
+                               authenticationService: AuthenticationService,
+                               @Named("ChatManager") chatManager: ActorRef
+                              )
                               (implicit executionContext: ExecutionContext) extends BaseController with Logging {
 
   import LoginRequest._
@@ -55,10 +61,12 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents, v
 
     request.headers.get("Authorization")
       .map(token => {
-        if (authenticationService.logout(token)) {
-          NoContent
-        } else {
-          Unauthorized
+        authenticationService.logout(token) match {
+          case Some(userId) =>
+            chatManager ! ChatManager.MemberLeft(userId)
+            NoContent
+          case _ =>
+            Unauthorized
         }
       })
       .getOrElse(Unauthorized)

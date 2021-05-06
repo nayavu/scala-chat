@@ -1,7 +1,7 @@
 package controllers
 
 import actors.{ChatActor, ChatManager}
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.Materializer
 import models.Member
 import play.api.Configuration
@@ -10,14 +10,15 @@ import play.api.mvc.WebSocket.MessageFlowTransformer
 import play.api.mvc.{BaseController, ControllerComponents, RequestHeader, WebSocket}
 import services.AuthenticationService
 
-import javax.inject.Inject
+import javax.inject.{Inject, Named}
 import scala.concurrent.{ExecutionContext, Future}
 
-class ChatSocketController @Inject()(val controllerComponents: ControllerComponents, val configuration: Configuration, authenticationService: AuthenticationService)
+class ChatSocketController @Inject()(val controllerComponents: ControllerComponents,
+                                     val configuration: Configuration,
+                                     val authenticationService: AuthenticationService,
+                                     @Named("ChatManager") chatManager: ActorRef)
                                     (implicit ec: ExecutionContext, system: ActorSystem, mat: Materializer) extends BaseController
   with WebSocketSameOriginCheck {
-
-  val manager = system.actorOf(Props[ChatManager], "ChatManager")
 
   implicit val messageFlowTransformer = MessageFlowTransformer.jsonMessageFlowTransformer[ChatActor.Incoming, ChatActor.Outgoing]
 
@@ -30,7 +31,7 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
           logger.info(s"Chat socket for member ${member.userId} connected")
           Right(
             ActorFlow.actorRef[ChatActor.Incoming, ChatActor.Outgoing] { out =>
-              ChatActor.props(out, manager, member)
+              ChatActor.props(out, chatManager, member)
             }
           )
         }

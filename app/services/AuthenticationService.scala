@@ -51,20 +51,15 @@ class AuthenticationService @Inject()(clock: Clock) {
     }
   }
 
-  def logout(token: String): Boolean = {
+  def logout(token: String): Option[String] = {
     this.synchronized {
-      val member = sessions.get(token)
+      sessions.get(token)
+        .map { member =>
+          members -= member.nickname
+          sessions -= token
 
-      if (member.isEmpty) {
-        return false
+          member.userId
       }
-
-      val nickname = member.map(_.nickname).get
-      members(nickname) = members(nickname).copy(onlineSince = None)
-
-      sessions -= token
-
-      true
     }
   }
 }

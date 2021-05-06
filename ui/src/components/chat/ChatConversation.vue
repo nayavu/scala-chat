@@ -1,13 +1,13 @@
 <template>
   <div class="chat-conversation-box">
     <div class="chat-messages-list">
-      <chat-messages-list :target-user-id="targetUserId"></chat-messages-list>
+      <chat-messages-list :target-user-id="targetUser.userId"></chat-messages-list>
     </div>
     <div class="chat-notification">
       <chat-notification :notification="notification"></chat-notification>
     </div>
     <div class="chat-input">
-      <chat-input :target-user-id="targetUserId" :disabled="disabled"></chat-input>
+      <chat-input :target-user-id="targetUser.userId" :disabled="disabled"></chat-input>
     </div>
   </div>
 </template>
@@ -20,15 +20,10 @@ import ChatNotification from "@/components/chat/messages/ChatNotification";
 export default {
   name: "ChatConversation",
   components: {ChatNotification, ChatInput, ChatMessagesList},
-  props: ['targetUserId', 'disabled'],
-  data() {
-    return {
-      targetUser: this.$store.getters['chat/members'][this.targetUserId]
-    }
-  },
+  props: ['targetUser', 'disabled'],
   computed: {
     notification() {
-      const action = this.$store.getters['chat/memberActions'][this.targetUserId];
+      const action = this.$store.getters['chat/memberActions'][this.targetUser.userId];
       if (action == 'typing') {
         return `${this.targetUser.nickname} is typing`;
       } else {
