@@ -1,12 +1,14 @@
 package actors
 
-import akka.actor.{Actor, ActorRef, Terminated}
+import akka.actor.{Actor, ActorRef}
 import models.{ChatMessage, Member}
 import play.api.libs.json.Json
+import services.MemberRegistry
 
+import javax.inject.Inject
 import scala.collection.mutable
 
-class ChatManager extends Actor {
+class ChatManager @Inject()(memberRegistry: MemberRegistry) extends Actor {
   import ChatManager._
 
   private def logger = play.api.Logger(getClass)
@@ -23,6 +25,9 @@ class ChatManager extends Actor {
       logger.info(s"Member ${userId} disconnected")
       memberActors -= userId
       memberActors.values.foreach(_ ! ChatActor.Outgoing("MEMBER_DISCONNECTED", Json.obj("userId" -> userId)))
+
+      // TODO this is blockign call, fix this
+      memberRegistry.setMemberDisconnected(userId)
 
     case MemberLeft(userId) =>
       logger.info(s"Member ${userId} left")

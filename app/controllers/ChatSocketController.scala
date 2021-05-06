@@ -8,14 +8,14 @@ import play.api.Configuration
 import play.api.libs.streams.ActorFlow
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import play.api.mvc.{BaseController, ControllerComponents, RequestHeader, WebSocket}
-import services.AuthenticationService
+import services.MemberRegistry
 
 import javax.inject.{Inject, Named}
 import scala.concurrent.{ExecutionContext, Future}
 
 class ChatSocketController @Inject()(val controllerComponents: ControllerComponents,
                                      val configuration: Configuration,
-                                     val authenticationService: AuthenticationService,
+                                     memberRegistry: MemberRegistry,
                                      @Named("ChatManager") chatManager: ActorRef)
                                     (implicit ec: ExecutionContext, system: ActorSystem, mat: Materializer) extends BaseController
   with WebSocketSameOriginCheck {
@@ -53,7 +53,7 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
   private def authenticationCheck(rh: RequestHeader): Option[Member] = {
     // the simplest possible authentication via protocol Sec-WebSocket-Protocol
     rh.headers.get("Sec-WebSocket-Protocol")
-      .flatMap(authenticationService.findSession)
+      .flatMap(memberRegistry.findSession)
   }
 }
 

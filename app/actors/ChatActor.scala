@@ -1,9 +1,9 @@
 package actors
 
 import akka.actor.{Actor, ActorRef, Props}
-import models.{ChatMessage, Member, WebSocketEvent}
+import models.{ChatMessage, Member}
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{JsPath, JsString, JsValue, Json, Reads, Writes}
+import play.api.libs.json._
 
 class ChatActor(out: ActorRef, manager: ActorRef, member: Member) extends Actor {
 
@@ -13,7 +13,7 @@ class ChatActor(out: ActorRef, manager: ActorRef, member: Member) extends Actor 
 
   manager ! ChatManager.MemberConnected(member, self)
 
-  override def postStop() = {
+  override def postStop(): Unit = {
     manager ! ChatManager.MemberDisconnected(member.userId)
   }
 

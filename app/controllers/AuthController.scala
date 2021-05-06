@@ -6,7 +6,7 @@ import models.Member
 import play.api.{Configuration, Logging}
 import play.api.libs.json._
 import play.api.mvc.{BaseController, ControllerComponents, Request, Result}
-import services.AuthenticationService
+import services.MemberRegistry
 
 import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.ExecutionContext
@@ -35,7 +35,7 @@ object LoginResponse {
 @Singleton
 class AuthController @Inject()(val controllerComponents: ControllerComponents,
                                val configuration: Configuration,
-                               authenticationService: AuthenticationService,
+                               memberRegistry: MemberRegistry,
                                @Named("ChatManager") chatManager: ActorRef
                               )
                               (implicit executionContext: ExecutionContext) extends BaseController with Logging {
@@ -47,7 +47,7 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
 
   def login() = Action(parse.json) { request =>
     parseJsonBody[LoginRequest](request) { loginRequest =>
-      authenticationService.login(loginRequest.username)
+      memberRegistry.join(loginRequest.username)
         .map(memberWithToken => {
           val (member, token) = memberWithToken
           logger.info(s"User ${loginRequest.username} logged in")
@@ -61,7 +61,7 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
 
     request.headers.get("Authorization")
       .map(token => {
-        authenticationService.logout(token) match {
+        memberRegistry.leave(token) match {
           case Some(userId) =>
             chatManager ! ChatManager.MemberLeft(userId)
             NoContent

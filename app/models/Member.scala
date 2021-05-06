@@ -3,8 +3,6 @@ package models
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 
-import java.time.Instant
-
 case class Member(userId: String, nickname: String, onlineSince: Option[Long])
 
 object Member {
