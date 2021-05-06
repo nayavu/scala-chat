@@ -1,6 +1,5 @@
 package controllers
 
-import akka.actor.ActorSystem
 import play.api.libs.json.Json
 import play.api.mvc.{BaseController, ControllerComponents}
 import services.AuthenticationService
@@ -8,7 +7,7 @@ import services.AuthenticationService
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class MembersController @Inject()(val controllerComponents: ControllerComponents, actorSystem: ActorSystem, authenticationService: AuthenticationService) extends BaseController {
+class MembersController @Inject()(val controllerComponents: ControllerComponents, authenticationService: AuthenticationService) extends BaseController {
 
   def getMembers() = Action { implicit request =>
     request.headers.get("Authorization")

@@ -31,7 +31,7 @@ class ChatActor(out: ActorRef, manager: ActorRef, member: Member) extends Actor 
 
         out ! Outgoing(
           "MESSAGE_DELIVERED",
-          // TODO should be implicit writer
+          // TODO should be implicit writer, check why not working without (messageDeliveredWrites)
           Json.toJson(MessageDeliveredEvent(chatMessage.messageId, chatMessage.senderId, chatMessage.recipientId, chatMessage.timestamp))(messageDeliveredWrites)
         )
 

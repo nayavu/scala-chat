@@ -26,12 +26,10 @@ class ChatManager extends Actor {
       memberActors.get(msg.recipientId).foreach(_ ! ChatActor.Outgoing("NEW_MESSAGE", Json.toJson(msg)))
 
     case MemberStartedTyping(senderId, recipientId) =>
-      val data = Json.obj("senderId" -> senderId, "recipientId" -> recipientId)
-      memberActors.get(recipientId).foreach(_ ! ChatActor.Outgoing("MEMBER_START_TYPING", data))
+      memberActors.get(recipientId).foreach(_ ! ChatActor.Outgoing("MEMBER_STARTED_TYPING", Json.obj("userId" -> senderId)))
 
     case MemberStoppedTyping(senderId, recipientId) =>
-      val data = Json.obj("senderId" -> senderId, "recipientId" -> recipientId)
-      memberActors.get(recipientId).foreach(_ ! ChatActor.Outgoing("MEMBER_STOPPED_TYPING", data))
+      memberActors.get(recipientId).foreach(_ ! ChatActor.Outgoing("MEMBER_STOPPED_TYPING", Json.obj("userId" -> senderId)))
 
     case m => logger.warn(s"Unhandled message ${m}")
   }

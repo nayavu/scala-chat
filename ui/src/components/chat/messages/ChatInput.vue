@@ -9,17 +9,15 @@
 
 export default {
   name: "ChatInput",
-  props: ['targetUserId'],
+  props: ['targetUserId', 'disabled'],
   data() {
     return {
       isTyping: false,
-      disabled: false
+      sendingMessage: false
     }
   },
   methods: {
     async submit() {
-      this.disabled = true;
-
       const currentUserId = this.$store.getters['auth/userId'];
 
       this.$store.dispatch({
@@ -32,7 +30,6 @@ export default {
 
       this.$refs.message.value = null;
       this.isTyping = false;
-      this.disabled = false;
     },
     blur() {
       if (this.isTyping) {

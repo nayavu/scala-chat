@@ -1,14 +1,10 @@
 package controllers
 
-import actors.ChatActor.Incoming
 import actors.{ChatActor, ChatManager}
-import akka.NotUsed
 import akka.actor.{ActorSystem, Props}
 import akka.stream.Materializer
-import akka.stream.scaladsl.Flow
-import models.{Member, WebSocketEvent}
+import models.Member
 import play.api.Configuration
-import play.api.libs.json.{JsValue, Json}
 import play.api.libs.streams.ActorFlow
 import play.api.mvc.WebSocket.MessageFlowTransformer
 import play.api.mvc.{BaseController, ControllerComponents, RequestHeader, WebSocket}
@@ -53,7 +49,6 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
 
   private def authenticationCheck(rh: RequestHeader): Option[Member] = {
     // the simplest possible authentication via protocol Sec-WebSocket-Protocol
-    // TODO: authenticate with the first message
     rh.headers.get("Sec-WebSocket-Protocol")
       .flatMap(authenticationService.findSession)
   }

@@ -3,8 +3,11 @@
     <div class="chat-messages-list">
       <chat-messages-list :target-user-id="targetUserId"></chat-messages-list>
     </div>
+    <div class="chat-notification">
+      <chat-notification :notification="notification"></chat-notification>
+    </div>
     <div class="chat-input">
-      <chat-input :target-user-id="targetUserId"></chat-input>
+      <chat-input :target-user-id="targetUserId" :disabled="disabled"></chat-input>
     </div>
   </div>
 </template>
@@ -12,11 +15,27 @@
 <script>
 import ChatMessagesList from "@/components/chat/messages/ChatMessagesList";
 import ChatInput from "@/components/chat/messages/ChatInput";
+import ChatNotification from "@/components/chat/messages/ChatNotification";
 
 export default {
   name: "ChatConversation",
-  components: {ChatInput, ChatMessagesList},
-  props: ['targetUserId']
+  components: {ChatNotification, ChatInput, ChatMessagesList},
+  props: ['targetUserId', 'disabled'],
+  data() {
+    return {
+      targetUser: this.$store.getters['chat/members'][this.targetUserId]
+    }
+  },
+  computed: {
+    notification() {
+      const action = this.$store.getters['chat/memberActions'][this.targetUserId];
+      if (action == 'typing') {
+        return `${this.targetUser.nickname} is typing`;
+      } else {
+        return null;
+      }
+    }
+  }
 }
 </script>
 
@@ -30,6 +49,10 @@ div.chat-conversation-box {
 
 div.chat-messages-list {
   flex-basis: 100%;
+}
+
+div.chat-notification {
+  flex-basis: 20px;
 }
 
 div.chat-input {

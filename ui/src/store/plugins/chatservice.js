@@ -12,11 +12,20 @@ function createChatServicePlugin() {
             .onMemberStateChanged(data => {
                 store.dispatch('chat/updateMember', data)
             })
+            .onMemberStartedTyping(data => {
+                store.dispatch('chat/memberStartedTyping', data);
+            })
+            .onMemberStoppedTyping(data => {
+                store.dispatch('chat/memberStoppedTyping', data);
+            })
             .onConnected(() => {
                 store.dispatch('chat/setSocketConnected');
             })
             .onDisconnected(() => {
                 store.dispatch('chat/setSocketDisconnected');
+            })
+            .onError(() => {
+                store.dispatch('chat/socketError');
             });
 
         store.subscribe((mutation, state) => {

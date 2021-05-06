@@ -30,12 +30,6 @@ export class AuthService {
             headers: {
                 'Authorization': token
             }
-        }).then((response) => {
-            if (!response.ok) {
-                return response.json()
-                    .then((res) => { throw new Error(res.message || 'Server communication failed'); });
-            }
-            return response;
         });
 
         // Test data

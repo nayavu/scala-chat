@@ -6,8 +6,14 @@ export class ChatService {
     newMessageCallback = null;
     messageDeliveredCallback = null;
     memberStateChangedCallback = null;
+
+    memberStartedTypingCallback = null;
+    memberStoppedTypingCallback = null;
+
     connectedCallback = null;
     disconnectedCallback = null;
+
+    errorCallback = null;
 
     socket = null;
 
@@ -15,8 +21,8 @@ export class ChatService {
         if (chatSocketUrl == null) {
             return;
         }
+
         // the simplest possible authentication via 'Sec-WebSocket-Protocol' field
-        // TODO: implement via the first message
         this.socket = new WebSocket(chatSocketUrl, token);
 
         this.socket.onopen = () => {
@@ -91,10 +97,20 @@ export class ChatService {
 
                 case 'MEMBER_STARTED_TYPING':
                     console.log('Received MEMBER_STARTED_TYPING', payload.data);
+                    if (this.memberStartedTypingCallback) {
+                        this.memberStartedTypingCallback({
+                            userId: payload.data.userId
+                        })
+                    }
                     break;
 
                 case 'MEMBER_STOPPED_TYPING':
                     console.log('Received MEMBER_STOPPED_TYPING', payload.data);
+                    if (this.memberStoppedTypingCallback) {
+                        this.memberStoppedTypingCallback({
+                            userId: payload.data.userId
+                        })
+                    }
                     break;
 
                 default:
@@ -103,7 +119,10 @@ export class ChatService {
         };
 
         this.socket.onerror = (error) => {
-            console.error("Chat socket failed: " + error.message);
+            console.error("Chat socket failed", error);
+            if (this.errorCallback) {
+                this.errorCallback(error);
+            }
         };
     }
 
@@ -226,6 +245,16 @@ export class ChatService {
         return this;
     }
 
+    onMemberStartedTyping(callback) {
+        this.memberStartedTypingCallback = callback;
+        return this;
+    }
+
+    onMemberStoppedTyping(callback) {
+        this.memberStoppedTypingCallback = callback;
+        return this;
+    }
+
     onConnected(callback) {
         this.connectedCallback = callback;
         return this;
@@ -233,6 +262,11 @@ export class ChatService {
 
     onDisconnected(callback) {
         this.disconnectedCallback = callback;
+        return this;
+    }
+
+    onError(callback) {
+        this.errorCallback = callback;
         return this;
     }
 }

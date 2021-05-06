@@ -7,39 +7,75 @@ export const authStore = {
         return {
             userId: null,
             nickname: null,
-            onlineSince: null,
             chatSocketUrl: null,
             token: null
         };
     },
 
     mutations: {
-        setUserDetails(state, payload) {
+        SET_SESSION(state, payload) {
             state.userId = payload?.member?.userId;
             state.nickname = payload?.member?.nickname;
-            state.onlineSince = payload?.member?.onlineSince;
             state.token = payload?.token;
             state.chatSocketUrl = payload?.chatSocketUrl;
         }
     },
 
     actions: {
+
+        async loadSession(context) {
+            const userId = localStorage.getItem('userId');
+            const nickname = localStorage.getItem('nickname');
+            const token = localStorage.getItem('token');
+            const chatSocketUrl = localStorage.getItem('chatSocketUrl');
+
+            if (!userId || !nickname || !token || !chatSocketUrl) {
+                await context.dispatch('clearSession');
+                return null;
+            }
+
+            context.commit('SET_SESSION', {
+                member: { userId, nickname },
+                token,
+                chatSocketUrl
+            });
+
+            chatService.connect(context.state.chatSocketUrl, context.state.token);
+            // TODO
+            // there might be a case when session token is invalid
+            // while establishing a WebSocket connection with it, there will be a lot of error messages in console - deal with it
+        },
+
+        clearSession() {
+            localStorage.removeItem('userId');
+            localStorage.removeItem('nickname');
+            localStorage.removeItem('token');
+            localStorage.removeItem('chatSocketUrl');
+        },
+
         async logout(context) {
             console.log('Logging out');
 
             chatService.disconnect();
+            await context.dispatch('clearSession');
+
             await authService.logout(context.state.token);
-            context.commit('setUserDetails', null);
+            context.commit('SET_SESSION', null);
         },
 
         async login(context, payload) {
             const username = payload.username;
             console.log(`Logging in as ${username}`);
 
-            const user = await authService.login(username);
-            context.commit('setUserDetails', user);
+            const session = await authService.login(username);
+            context.commit('SET_SESSION', session);
 
             chatService.connect(context.state.chatSocketUrl, context.state.token);
+
+            localStorage.setItem('userId', context.state.userId);
+            localStorage.setItem('nickname', context.state.nickname);
+            localStorage.setItem('token', context.state.token);
+            localStorage.setItem('chatSocketUrl', context.state.chatSocketUrl);
         }
     },
 

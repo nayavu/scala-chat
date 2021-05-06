@@ -1,6 +1,6 @@
 package controllers
 
-import play.api.{Configuration, Logger}
+import play.api.Configuration
 import play.api.mvc.RequestHeader
 
 import java.net.URI
@@ -11,7 +11,7 @@ trait WebSocketSameOriginCheck {
 
   val configuration: Configuration
 
-  private val allowedHost = configuration.get[String]("app.websockets.host")
+  private val allowedOrigins = configuration.get[Seq[String]]("app.websockets.allowedOrigins")
 
   /**
    * Checks that the WebSocket comes from the same origin.  This is necessary to protect
@@ -40,6 +40,6 @@ trait WebSocketSameOriginCheck {
 
   private def originMatches(origin: String): Boolean = {
     val originUri = URI.create(origin)
-    s"${originUri.getHost}:${originUri.getPort}" == allowedHost
+    allowedOrigins.contains(s"${originUri.getHost}:${originUri.getPort}")
   }
 }

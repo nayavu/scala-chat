@@ -11,6 +11,8 @@
     </div>
   </header>
   <main>
+    <the-notification v-if="notification" :message="notification.message" :level="notification.level"></the-notification>
+
     <router-view></router-view>
   </main>
 </template>
@@ -19,17 +21,26 @@
 
 import TheNavigator from "@/components/layout/TheNavigator";
 import UserInfo from "@/components/layout/UserInfo";
+import TheNotification from "@/components/layout/TheNotification";
 
 export default {
   name: 'App',
   components: {
+    TheNotification,
     UserInfo,
     TheNavigator
+  },
+  async created() {
+    // load from LocalStore previously saved session (if any)
+    await this.$store.dispatch('auth/loadSession');
   },
   computed: {
     isAuthenticated() {
       return this.$store.getters['auth/isAuthenticated'];
-    }
+    },
+    notification() {
+      return this.$store.getters.notification;
+    },
   }
 }
 </script>
@@ -64,6 +75,10 @@ header {
 
 h1 {
   margin: 0;
+}
+
+div#notification {
+  height: 30px;
 }
 
 main {

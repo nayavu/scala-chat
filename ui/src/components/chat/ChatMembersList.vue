@@ -10,6 +10,7 @@
       {{ member.nickname }}
     </li>
   </ul>
+  <p v-if="!membersList.length">No other chat members</p>
 </template>
 
 <script>
@@ -19,7 +20,7 @@ export default {
   props: ['targetUserId'],
   computed: {
     membersList() {
-      return this.$store.getters['chat/membersList'];
+      return Object.values(this.$store.getters['chat/members']).sort();
     }
   },
   methods: {
@@ -60,5 +61,9 @@ li:hover {
 
 .selected {
   background: #d7e2ef;
+}
+
+p {
+  margin: 1rem;
 }
 </style>

@@ -22,19 +22,25 @@ export const chatStore = {
 
     state() {
         return {
-            // A list of Members,
-            // [{ userId: "1", nickname: 'Member1', onlineSince: 123456 }]
-            members: [],
+            // A map of userId => Member,
+            // {
+            //    "1" : { userId: "1", nickname: 'Member1', onlineSince: 123456 }
+            // }
+            members: {},
+
+            // Member actions map
+            // { "userId": "typing" }
+            memberActions: {},
 
             // Map of userId => list of Messages
             // {
             //   "1": [{
-            //     "messageId": "1",
-            //     "senderId": "1",
-            //     "recipientId": "9",
-            //     "message": "hello",
-            //     "timestamp": 12345677890,
-            //     "delivered": true
+            //     messageId: "1",
+            //     senderId: "1",
+            //     recipientId: "9",
+            //     message: "hello",
+            //     timestamp: 12345677890,
+            //     delivered: true
             //   }]
             // }
 
@@ -88,14 +94,11 @@ export const chatStore = {
         },
 
         UPDATE_MEMBER(state, payload) {
-            // It's not effective to search for member index in array, better to use Map for this purposes
-            // However, it's quite easy to use the array in Vuex state
-            // TODO : think of better alternatives
-            const memberIdx = state.members.findIndex((member) => member.userId === payload.userId);
-            if (memberIdx == null) {
-                console.warn(`Unabled to find member with userId=${payload.userId}`);
-            }
-            state.members.splice(memberIdx, 0, payload);
+            state.members[payload.userId] = payload;
+        },
+
+        SET_MEMBER_ACTION(state, payload) {
+            state.memberActions[payload.userId] = payload.action;
         },
 
         // -- socket state
@@ -107,11 +110,17 @@ export const chatStore = {
     },
 
     getters: {
-        membersList(state) {
+        members(state) {
             return state.members;
+        },
+        memberActions(state) {
+            return state.memberActions;
         },
         messages(state) {
             return state.messages;
+        },
+        connected(state) {
+            return state.connected
         }
     },
 
@@ -119,7 +128,8 @@ export const chatStore = {
         // -- members
         async loadMembers(context) {
             const token = context.rootGetters['auth/token'];
-            const members = await chatService.loadMembers(token);
+            const membersList = await chatService.loadMembers(token);
+            const members = membersList.reduce((map, item) => { map[item.userId] = item; return map }, {});
             context.commit('SET_MEMBERS', members);
         },
 
@@ -128,10 +138,19 @@ export const chatStore = {
             context.commit('UPDATE_MEMBER', payload);
         },
 
+        memberStartedTyping(context, payload) {
+            context.commit('SET_MEMBER_ACTION', { userId: payload.userId, action: 'typing' });
+        },
+
+        memberStoppedTyping(context, payload) {
+            context.commit('SET_MEMBER_ACTION', { userId: payload.userId, action: null });
+        },
+
         // -- messages
 
         receiveMessage(context, payload) {
             context.commit('RECEIVE_MESSAGE', payload);
+            context.commit('SET_MEMBER_ACTION', { userId: payload.senderId, action: null });
         },
 
         addMessage(context, payload) {
@@ -155,7 +174,16 @@ export const chatStore = {
         },
 
         setSocketDisconnected(context) {
+            const wasConnected = context.state.connected;
             context.commit('SET_CONNECTED_STATE', false);
+
+            if (wasConnected) {
+                // seems like server shut down
+                context.commit('SET_NOTIFICATION', { message: 'Server connection lost', level: 'error' }, { root: true });
+            } else {
+                // normally disconnected or not previously connected
+                context.commit('SET_NOTIFICATION', null, { root: true });
+            }
         },
 
         // -- misc
@@ -169,5 +197,14 @@ export const chatStore = {
             // it has nothing to do with store, it just wraps service call (for code consistency)
             chatService.notifyMemberStoppedTyping(payload.senderId, payload.recipientId);
         },
+
+        socketError(context) {
+            if (!context.state.connected) {
+                context.dispatch('auth/logout', null, { root: true });
+                // looks like there was no successful connection attempt (maybe invalid session?)
+
+                // TODO there might be more edge cases, think of them
+            }
+        }
     }
 };
