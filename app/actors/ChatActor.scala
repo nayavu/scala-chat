@@ -1,6 +1,7 @@
 package actors
 
 import akka.actor.{Actor, ActorRef, Props}
+import models.events.{Incoming, Outgoing}
 import models.{ChatMessage, Member}
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
@@ -58,24 +59,6 @@ class ChatActor(out: ActorRef, manager: ActorRef, member: Member) extends Actor 
 object ChatActor {
   def props(out: ActorRef, manager: ActorRef, member: Member): Props =
     Props(new ChatActor(out, manager, member))
-
-  case class Incoming(typ: String, data: JsValue)
-
-  case class Outgoing(typ: String, data: JsValue)
-
-  implicit val incomingReads: Reads[Incoming] = {
-    val func = (JsPath \ "type").read[String] and (JsPath \ "data").read[JsValue]
-    func(Incoming.apply _)
-  }
-
-  implicit val outgoingWrites = new Writes[Outgoing] {
-    def writes(event: Outgoing): JsValue = {
-      Json.obj(
-        "type" -> event.typ,
-        "data" -> event.data
-      )
-    }
-  }
 
   // incoming events
   // Client sent message to the server

@@ -1,6 +1,7 @@
 package actors
 
 import akka.actor.{Actor, ActorRef}
+import models.events.Outgoing
 import models.{ChatMessage, Member}
 import play.api.libs.json.Json
 import services.MemberRegistry
@@ -18,13 +19,13 @@ class ChatManager @Inject()(memberRegistry: MemberRegistry) extends Actor {
   override def receive: Receive = {
     case MemberConnected(member, memberActor) =>
       logger.info(s"Member ${member.userId} connected")
-      memberActors.values.foreach(_ ! ChatActor.Outgoing("MEMBER_CONNECTED", Json.toJson(member)))
+      memberActors.values.foreach(_ ! Outgoing("MEMBER_CONNECTED", Json.toJson(member)))
       memberActors(member.userId) = memberActor
 
     case MemberDisconnected(userId) =>
       logger.info(s"Member ${userId} disconnected")
       memberActors -= userId
-      memberActors.values.foreach(_ ! ChatActor.Outgoing("MEMBER_DISCONNECTED", Json.obj("userId" -> userId)))
+      memberActors.values.foreach(_ ! Outgoing("MEMBER_DISCONNECTED", Json.obj("userId" -> userId)))
 
       // TODO this is blockign call, fix this
       memberRegistry.setMemberDisconnected(userId)
@@ -32,16 +33,16 @@ class ChatManager @Inject()(memberRegistry: MemberRegistry) extends Actor {
     case MemberLeft(userId) =>
       logger.info(s"Member ${userId} left")
       memberActors -= userId
-      memberActors.values.foreach(_ ! ChatActor.Outgoing("MEMBER_LEFT", Json.obj("userId" -> userId)))
+      memberActors.values.foreach(_ ! Outgoing("MEMBER_LEFT", Json.obj("userId" -> userId)))
 
     case NewMessage(msg) =>
-      memberActors.get(msg.recipientId).foreach(_ ! ChatActor.Outgoing("NEW_MESSAGE", Json.toJson(msg)))
+      memberActors.get(msg.recipientId).foreach(_ ! Outgoing("NEW_MESSAGE", Json.toJson(msg)))
 
     case MemberStartedTyping(senderId, recipientId) =>
-      memberActors.get(recipientId).foreach(_ ! ChatActor.Outgoing("MEMBER_STARTED_TYPING", Json.obj("userId" -> senderId)))
+      memberActors.get(recipientId).foreach(_ ! Outgoing("MEMBER_STARTED_TYPING", Json.obj("userId" -> senderId)))
 
     case MemberStoppedTyping(senderId, recipientId) =>
-      memberActors.get(recipientId).foreach(_ ! ChatActor.Outgoing("MEMBER_STOPPED_TYPING", Json.obj("userId" -> senderId)))
+      memberActors.get(recipientId).foreach(_ ! Outgoing("MEMBER_STOPPED_TYPING", Json.obj("userId" -> senderId)))
 
     case m => logger.warn(s"Unhandled message ${m}")
   }

@@ -1,9 +1,10 @@
 package controllers
 
-import actors.{ChatActor, ChatManager}
-import akka.actor.{ActorRef, ActorSystem, Props}
+import actors.ChatActor
+import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.Materializer
 import models.Member
+import models.events.{Incoming, Outgoing}
 import play.api.Configuration
 import play.api.libs.streams.ActorFlow
 import play.api.mvc.WebSocket.MessageFlowTransformer
@@ -20,17 +21,17 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
                                     (implicit ec: ExecutionContext, system: ActorSystem, mat: Materializer) extends BaseController
   with WebSocketSameOriginCheck {
 
-  implicit val messageFlowTransformer = MessageFlowTransformer.jsonMessageFlowTransformer[ChatActor.Incoming, ChatActor.Outgoing]
+  implicit val messageFlowTransformer = MessageFlowTransformer.jsonMessageFlowTransformer[Incoming, Outgoing]
 
   private def logger = play.api.Logger(getClass)
 
-  def chatSocket: WebSocket = WebSocket.acceptOrResult[ChatActor.Incoming, ChatActor.Outgoing] {
+  def webSocket: WebSocket = WebSocket.acceptOrResult[Incoming, Outgoing] {
     case request if sameOriginCheck(request) => {
       authenticationCheck(request) match {
         case Some(member) => Future.successful {
           logger.info(s"Chat socket for member ${member.userId} connected")
           Right(
-            ActorFlow.actorRef[ChatActor.Incoming, ChatActor.Outgoing] { out =>
+            ActorFlow.actorRef[Incoming, Outgoing] { out =>
               ChatActor.props(out, chatManager, member)
             }
           )

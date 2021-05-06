@@ -18,7 +18,7 @@ object LoginRequest {
     (JsPath \ "username").read[String].map(new LoginRequest(_))
 }
 
-case class LoginResponse(member: Member, token: String, chatSocketUrl: String)
+case class LoginResponse(member: Member, token: String, chatSocketUrl: String, visualizationSockerUrl: String)
 
 object LoginResponse {
   implicit val recordWrites = new Writes[LoginResponse] {
@@ -26,7 +26,8 @@ object LoginResponse {
       Json.obj(
         "member" -> loginResponse.member,
         "token" -> loginResponse.token,
-        "chatSocketUrl" -> loginResponse.chatSocketUrl
+        "chatSocketUrl" -> loginResponse.chatSocketUrl,
+        "visualizationSockerUrl" -> loginResponse.visualizationSockerUrl,
       )
     }
   }
@@ -51,7 +52,7 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
         .map(memberWithToken => {
           val (member, token) = memberWithToken
           logger.info(s"User ${loginRequest.username} logged in")
-          Ok(Json.toJson(LoginResponse(member, token, generateChatSocketUrl)))
+          Ok(Json.toJson(LoginResponse(member, token, generateChatSocketUrl, generateVisualizationSocketUrl)))
         })
         .getOrElse(Unauthorized(errorMessage(s"User ${loginRequest.username} already logged in")))
     }
@@ -87,6 +88,10 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
   }
 
   private def generateChatSocketUrl: String = {
-    s"ws://${websocketHost}${routes.ChatSocketController.chatSocket().url}"
+    s"ws://${websocketHost}${routes.ChatSocketController.webSocket().url}"
+  }
+
+  private def generateVisualizationSocketUrl: String = {
+    s"ws://${websocketHost}${routes.VisualizationSocketController.webSocket().url}"
   }
 }

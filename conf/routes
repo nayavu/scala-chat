@@ -17,7 +17,8 @@ POST    /api/auth/logout            controllers.AuthController.logout
 GET     /api/members                controllers.MembersController.getMembers
 
 # WebSocket
-GET     /ws/chat                    controllers.ChatSocketController.chatSocket
+GET     /ws/chat                    controllers.ChatSocketController.webSocket
+GET     /ws/visualization           controllers.VisualizationSocketController.webSocket
 
 # Frontend static resources
 GET     /*file                      controllers.Assets.at(path="/public", file)
