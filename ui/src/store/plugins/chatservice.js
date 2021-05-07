@@ -22,12 +22,15 @@ function createChatServicePlugin() {
 
             .onMemberJoined(data => {
                 store.dispatch('members/joinMember', data)
+                store.dispatch('visualization/addNode', data.memberId)
             })
             .onMemberBecameAway(data => {
                 store.dispatch('members/markAsAway', data)
+                store.dispatch('visualization/deleteNode', data.memberId)
             })
             .onMemberLeft(data => {
                 store.dispatch('members/leaveMember', data)
+                store.dispatch('visualization/deleteNode', data.memberId)
             })
 
             .onSocketConnected(() => {

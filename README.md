@@ -4,7 +4,7 @@ A simple chat written on Scala + Play + VueJS with real time data transfer.
 
 ## Build
 
-* build the UI: `cd ui && npm run build`
+* build the UI: `cd ui && npm install && npm run build`
 * run the application: `sbt run`
 
 ## Client-server communication
