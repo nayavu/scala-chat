@@ -31,6 +31,10 @@ export const chatStore = {
             state.connected = connected;
         },
 
+        CLEAR_NOTIFICATION(state) {
+            state.notification = null;
+        },
+
         SET_NOTIFICATION(state, payload) {
             state.notification = payload;
         }
@@ -45,33 +49,46 @@ export const chatStore = {
 
             if (!memberId || !nickname || !sessionToken || !chatSocketUrl) {
                 if (memberId || nickname || sessionToken || chatSocketUrl) {
+                    // inconsistent state - clear everything
                     await context.dispatch('clearSession');
                 }
                 return null;
             }
 
+            try {
+                await context.dispatch('members/loadMembers', {memberId, sessionToken}, {root: true});
+            } catch (e) {
+                // could not load members - possibly invalid session token
+                console.warn('Failed to load members list')
+                await context.dispatch('clearSession');
+                return null;
+            }
+
             context.commit('SET_SESSION', {
-                member: { memberId, nickname },
+                member: {
+                    memberId: memberId,
+                    nickname: nickname
+                },
                 sessionToken,
                 chatSocketUrl
             });
 
             chatSocketService.connect(context.state.chatSocketUrl, context.state.sessionToken);
-            // TODO
-            // there might be a case when session sessionToken is invalid
-            // while establishing a WebSocket connection with it, there will be a lot of error messages in console
         },
 
-        clearSession() {
+        clearSession(context) {
             localStorage.removeItem('memberId');
             localStorage.removeItem('nickname');
             localStorage.removeItem('sessionToken');
             localStorage.removeItem('chatSocketUrl');
+
+            context.commit('SET_SESSION', null);
         },
 
         async join(context, payload) {
+            context.commit('CLEAR_NOTIFICATION');
+
             const nickname = payload.nickname;
-            console.log(`Joining the chat as ${nickname}`);
 
             const session = await memberService.join(nickname);
             context.commit('SET_SESSION', session);
@@ -82,15 +99,31 @@ export const chatStore = {
             localStorage.setItem('nickname', context.state.nickname);
             localStorage.setItem('sessionToken', context.state.sessionToken);
             localStorage.setItem('chatSocketUrl', context.state.chatSocketUrl);
+
+            await context.dispatch('members/loadMembers',
+                {
+                    memberId: context.state.memberId,
+                    sessionToken: context.state.sessionToken
+                },
+                {
+                    root: true
+                }
+            );
         },
 
         async leave(context) {
             console.log('Leaving the chat');
 
             chatSocketService.disconnect();
-            await memberService.leave(context.state.sessionToken);
+            try {
+                await memberService.leave(context.state.sessionToken);
+            } catch (e) {
+                // could not leave the chat properly - possibly invalid session
+                // squash this error
+            }
 
-            context.commit('SET_SESSION', null);
+            context.commit('CLEAR_NOTIFICATION');
+
             await context.dispatch('clearSession');
         },
 
@@ -104,19 +137,14 @@ export const chatStore = {
 
             if (wasConnected) {
                 // seems like server shut down
-                context.commit('SET_NOTIFICATION', { text: 'Server connection lost', level: 'error' });
-            } else {
-                // normally disconnected or not previously connected
-                context.commit('SET_NOTIFICATION', null);
+                context.commit('SET_NOTIFICATION', {text: 'Server connection lost', level: 'error'});
             }
         },
 
         setSocketError(context) {
             if (!context.state.connected) {
+                context.commit('SET_NOTIFICATION', {text: 'Server connection lost', level: 'error'})
                 context.dispatch('leave', null);
-                // looks like there was no successful connection attempt (maybe invalid session?)
-
-                // TODO there might be more edge cases, think of them
             }
         },
 

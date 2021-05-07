@@ -31,7 +31,7 @@ export default {
     }
   },
   watch: {
-    nodes(newList) {
+    nodes() {
       this.redrawGraph();
     },
     edges() {

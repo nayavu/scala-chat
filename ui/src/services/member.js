@@ -1,6 +1,14 @@
 const API_BASE_URL = 'http://localhost:9000/api';
 // const API_BASE_URL = '/api';
 
+function checkResponse(response) {
+    if (!response.ok) {
+        return response.json()
+            .then((res) => { throw new Error(res.message || 'Server communication failed'); });
+    }
+    return response
+}
+
 export class MemberService {
     join(nickname) {
         console.log(`Joining chat as ${nickname}`);
@@ -13,13 +21,7 @@ export class MemberService {
             body:  JSON.stringify({
                 nickname
             })
-        }).then((response) => {
-            if (!response.ok) {
-                return response.json()
-                    .then((res) => { throw new Error(res.message || 'Server communication failed'); });
-            }
-            return response.json();
-        });
+        }).then(checkResponse).then(response => response.json());
     }
 
     leave(token) {
@@ -30,13 +32,7 @@ export class MemberService {
             headers: {
                 'Authorization': token
             }
-        }).then((response) => {
-            if (!response.ok) {
-                // ignore any error TODO fix this
-                return;
-            }
-            return response;
-        });
+        }).then(checkResponse);
     }
 
     loadMembers(token) {
@@ -48,15 +44,6 @@ export class MemberService {
                     'Authorization': token
                 }
             }
-        )
-            .then((response) => {
-                if (!response.ok) {
-                    return response.json()
-                        .then((res) => {
-                            throw new Error(res.message || 'Server communication failed');
-                        });
-                }
-                return response.json();
-            })
+        ).then(checkResponse).then(response => response.json());
     }
 }

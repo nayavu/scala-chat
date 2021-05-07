@@ -47,11 +47,11 @@ export const membersStore = {
     },
 
     actions: {
-        async loadMembers(context) {
-            const currentMemberId = context.rootGetters['chat/memberId'];
-            const sessionToken = context.rootGetters['chat/sessionToken'];
+        async loadMembers(context, {memberId, sessionToken}) {
             const membersList = await memberService.loadMembers(sessionToken);
-            const members = membersList.filter((item) => item.memberId !== currentMemberId)
+
+            const members = membersList
+                .filter((item) => item.memberId !== memberId)
                 .reduce((map, item) => { map[item.memberId] = item; return map }, {});
             context.commit('SET_MEMBERS', members);
 

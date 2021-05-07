@@ -33,8 +33,9 @@ export default {
   async created() {
     // load from LocalStore previously saved session (if any)
     await this.$store.dispatch('chat/loadSession');
-
-    await this.$store.dispatch('members/loadMembers');
+    if (this.isAuthenticated) {
+      this.$router.push('/chat');
+    }
   },
   computed: {
     isAuthenticated() {

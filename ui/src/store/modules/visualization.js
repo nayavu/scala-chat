@@ -37,10 +37,13 @@ export const visualizationStore = {
                 target: recipientId
             }];
         },
+
         DELETE_EDGE(state, { senderId, recipientId }) {
             state.edges = state.edges
-                .filter(({source, target}) => source !== senderId && source !== recipientId || target !== recipientId && target !== recipientId);
-            console.log(state.edges)
+                .filter(({source, target}) => {
+                    return source !== senderId && source !== recipientId
+                        || target !== recipientId && target !== recipientId;
+                });
         },
 
     },
