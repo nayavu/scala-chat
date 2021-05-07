@@ -48,10 +48,15 @@ export const membersStore = {
 
     actions: {
         async loadMembers(context) {
+            const currentMemberId = context.rootGetters['chat/memberId'];
             const sessionToken = context.rootGetters['chat/sessionToken'];
             const membersList = await memberService.loadMembers(sessionToken);
-            const members = membersList.reduce((map, item) => { map[item.memberId] = item; return map }, {});
+            const members = membersList.filter((item) => item.memberId !== currentMemberId)
+                .reduce((map, item) => { map[item.memberId] = item; return map }, {});
             context.commit('SET_MEMBERS', members);
+
+            const nodes = membersList.map((member) => member.memberId);
+            context.dispatch('visualization/setNodes', nodes, { root: true });
         },
 
         joinMember(context, { memberId, nickname, onlineSince }) {

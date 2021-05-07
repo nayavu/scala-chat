@@ -154,8 +154,8 @@ export class ChatSocketService {
 
                 case 'DownstreamStoppedTypingTrace':
                     console.log('Received DownstreamStoppedTypingTrace', payload);
-                    if (this.stoppedTypingCallback) {
-                        this.stoppedTypingCallback({
+                    if (this.stoppedTypingTraceCallback) {
+                        this.stoppedTypingTraceCallback({
                             senderId: payload.senderId,
                             recipientId: payload.recipientId
                         });

@@ -33,6 +33,8 @@ export default {
   async created() {
     // load from LocalStore previously saved session (if any)
     await this.$store.dispatch('chat/loadSession');
+
+    await this.$store.dispatch('members/loadMembers');
   },
   computed: {
     isAuthenticated() {
@@ -41,7 +43,7 @@ export default {
     notification() {
       return this.$store.getters.notification;
     },
-  }
+  },
 }
 </script>
 

@@ -33,6 +33,16 @@ function createChatServicePlugin() {
                 store.dispatch('visualization/deleteNode', data.memberId)
             })
 
+            .onNewMessageTrace(data => {
+                store.dispatch('visualization/deleteEdge', data)
+            })
+            .onStartedTypingTrace(data => {
+                store.dispatch('visualization/addEdge', data)
+            })
+            .onStoppedTypingTrace(data => {
+                store.dispatch('visualization/deleteEdge', data)
+            })
+
             .onSocketConnected(() => {
                 store.dispatch('chat/setSocketConnected');
             })

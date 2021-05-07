@@ -29,10 +29,6 @@ export default {
       return !this.$store.getters['chat/connected'] || !this.targetMember?.onlineSince;
     }
   },
-  created() {
-    // TODO: add spinner
-    this.$store.dispatch('members/loadMembers');
-  },
 }
 </script>
 

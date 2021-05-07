@@ -6,32 +6,60 @@ export const visualizationStore = {
                 // {
                 //   id: 'node1',
                 //   label: 'Circle1',
-                //   x: 150,
-                //   y: 150,
-                //     },
+                // },
             ],
-            edges: [
-
-            ]
+            edges: []
         }
     },
     mutations: {
-        ADD_NODE(state, id) {
-            state.nodes.push({
-                id: id,
-                label: id
+        SET_NODES(state, payload) {
+            state.nodes = payload.map((id) => {
+                return {
+                    id: id,
+                    // label: id
+                }
             });
         },
+        ADD_NODE(state, id) {
+            state.nodes = [...state.nodes, {
+                id: id,
+                // label: id
+            }];
+        },
+
         DELETE_NODE(state, id) {
             state.nodes = state.nodes.filter((node) => node.id !== id);
-        }
+        },
+
+        ADD_EDGE(state, { senderId, recipientId }) {
+            state.edges = [...state.edges, {
+                source: senderId,
+                target: recipientId
+            }];
+        },
+        DELETE_EDGE(state, { senderId, recipientId }) {
+            state.edges = state.edges
+                .filter(({source, target}) => source !== senderId && source !== recipientId || target !== recipientId && target !== recipientId);
+            console.log(state.edges)
+        },
+
     },
     actions: {
+        setNodes(context, payload) {
+            context.commit('SET_NODES', payload);
+        },
         addNode(context, id) {
             context.commit('ADD_NODE', id);
         },
         deleteNode(context, id) {
             context.commit('DELETE_NODE', id);
+        },
+
+        addEdge(context, payload) {
+            context.commit('ADD_EDGE', payload);
+        },
+        deleteEdge(context, payload) {
+            context.commit('DELETE_EDGE', payload);
         },
     },
     getters: {
