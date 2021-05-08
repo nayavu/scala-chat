@@ -55,7 +55,7 @@ export const membersStore = {
                 .reduce((map, item) => { map[item.memberId] = item; return map }, {});
             context.commit('SET_MEMBERS', members);
 
-            const nodes = membersList.map((member) => member.memberId);
+            const nodes = membersList.map((member) => { return { id: member.memberId, label: member.nickname }});
             context.dispatch('visualization/setNodes', nodes, { root: true });
         },
 

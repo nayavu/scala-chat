@@ -11,7 +11,7 @@ function findMessageIndex(state, memberId, messageId) {
             return i;
         }
     }
-    console.warn(`No message with id=${messageId} in conversation with ${memberId}`);
+    console.warn(`No message ${messageId} in conversation with ${memberId}`);
     return null;
 }
 

@@ -1,5 +1,3 @@
-// TODO: dial with 403 and other HTTP errors
-
 export class ChatSocketService {
     newMessageCallback = null;
     messageReadCallback = null;
@@ -10,8 +8,6 @@ export class ChatSocketService {
     memberLeftCallback = null;
 
     newMessageTraceCallback = null;
-    startedTypingTraceCallback = null;
-    stoppedTypingTraceCallback = null;
 
     socketConnectedCallback = null;
     socketDisconnectedCallback = null;
@@ -49,7 +45,7 @@ export class ChatSocketService {
             this.stopPinging();
 
             if (event.wasClean) {
-                console.log('Chat socket disconnected');
+                console.debug('Chat socket disconnected');
             } else {
                 console.error('Chat socket terminated, code=' + event.code + ', reason: ' + event.reason);
             }
@@ -63,7 +59,7 @@ export class ChatSocketService {
             const payload = JSON.parse(message.data);
             switch (payload['_type']) {
                 case 'DownstreamNewMessage':
-                    console.log('Received DownstreamNewMessage', payload);
+                    console.debug('Received DownstreamNewMessage', payload);
                     if (this.newMessageCallback) {
                         this.newMessageCallback({
                             messageId: payload.messageId,
@@ -75,7 +71,7 @@ export class ChatSocketService {
                     break;
 
                 case 'DownstreamMessageRead':
-                    console.log('Received DownstreamMessageRead', payload);
+                    console.debug('Received DownstreamMessageRead', payload);
                     if (this.messageReadCallback) {
                         this.messageReadCallback({
                             messageId: payload.messageId,
@@ -86,25 +82,27 @@ export class ChatSocketService {
                     break;
 
                 case 'DownstreamStartedTyping':
-                    console.log('Received DownstreamStartedTyping', payload);
+                    console.debug('Received DownstreamStartedTyping', payload);
                     if (this.startedTypingCallback) {
                         this.startedTypingCallback({
-                            memberId: payload.memberId
+                            senderId: payload.senderId,
+                            recipientId: payload.recipientId
                         });
                     }
                     break;
 
                 case 'DownstreamStoppedTyping':
-                    console.log('Received DownstreamStoppedTyping', payload);
+                    console.debug('Received DownstreamStoppedTyping', payload);
                     if (this.stoppedTypingCallback) {
                         this.stoppedTypingCallback({
-                            memberId: payload.memberId
+                            senderId: payload.senderId,
+                            recipientId: payload.recipientId
                         });
                     }
                     break;
 
                 case 'DownstreamMemberJoined':
-                    console.log('Received DownstreamMemberJoined', payload);
+                    console.debug('Received DownstreamMemberJoined', payload);
                     if (this.memberJoinedCallback) {
                         this.memberJoinedCallback({
                             memberId: payload.memberId,
@@ -115,7 +113,7 @@ export class ChatSocketService {
                     break;
 
                 case 'DownstreamMemberIsAway':
-                    console.log('Received DownstreamMemberIsAway', payload);
+                    console.debug('Received DownstreamMemberIsAway', payload);
                     if (this.memberBecameAwayCallback) {
                         this.memberBecameAwayCallback({
                             memberId: payload.memberId,
@@ -124,7 +122,7 @@ export class ChatSocketService {
                     break;
 
                 case 'DownstreamMemberLeft':
-                    console.log('Received DownstreamMemberLeft', payload);
+                    console.debug('Received DownstreamMemberLeft', payload);
                     if (this.memberLeftCallback) {
                         this.memberLeftCallback({
                             memberId: payload.memberId,
@@ -133,29 +131,9 @@ export class ChatSocketService {
                     break;
 
                 case 'DownstreamNewMessageTrace':
-                    console.log('Received DownstreamNewMessageTrace', payload);
+                    console.debug('Received DownstreamNewMessageTrace', payload);
                     if (this.newMessageTraceCallback) {
                         this.newMessageTraceCallback({
-                            senderId: payload.senderId,
-                            recipientId: payload.recipientId
-                        });
-                    }
-                    break;
-
-                case 'DownstreamStartedTypingTrace':
-                    console.log('Received DownstreamStartedTypingTrace', payload);
-                    if (this.startedTypingTraceCallback) {
-                        this.startedTypingTraceCallback({
-                            senderId: payload.senderId,
-                            recipientId: payload.recipientId
-                        });
-                    }
-                    break;
-
-                case 'DownstreamStoppedTypingTrace':
-                    console.log('Received DownstreamStoppedTypingTrace', payload);
-                    if (this.stoppedTypingTraceCallback) {
-                        this.stoppedTypingTraceCallback({
                             senderId: payload.senderId,
                             recipientId: payload.recipientId
                         });
@@ -199,7 +177,7 @@ export class ChatSocketService {
             message
         };
 
-        console.log('Sending UpstreamNewMessage', payload);
+        console.debug('Sending UpstreamNewMessage', payload);
         this.socket.send(JSON.stringify(payload));
     }
 
@@ -214,7 +192,7 @@ export class ChatSocketService {
             senderId
         };
 
-        console.log('Sending UpstreamNewMessage', payload);
+        console.debug('Sending UpstreamMessageRead', payload);
         this.socket.send(JSON.stringify(payload));
     }
 
@@ -228,7 +206,7 @@ export class ChatSocketService {
             memberId
         };
 
-        console.log('Sending UpstreamStartedTyping', payload);
+        console.debug('Sending UpstreamStartedTyping', payload);
         this.socket.send(JSON.stringify(payload));
     }
 
@@ -242,13 +220,12 @@ export class ChatSocketService {
             memberId
         };
 
-        console.log('Sending UpstreamStoppedTyping', payload);
+        console.debug('Sending UpstreamStoppedTyping', payload);
         this.socket.send(JSON.stringify(payload));
     }
 
     checkSocket() {
         if (!this.socket || this.socket.readyState !== 1) {
-            // TODO notify user
             console.error("Web socket is not opened");
             return false;
         }
@@ -299,16 +276,6 @@ export class ChatSocketService {
 
     onNewMessageTrace(callback) {
         this.newMessageTraceCallback = callback;
-        return this;
-    }
-
-    onStartedTypingTrace(callback) {
-        this.startedTypingTraceCallback = callback;
-        return this;
-    }
-
-    onStoppedTypingTrace(callback) {
-        this.stoppedTypingTraceCallback = callback;
         return this;
     }
 

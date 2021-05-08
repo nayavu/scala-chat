@@ -9,20 +9,29 @@ function createChatServicePlugin() {
                 // Reset 'typing' status (if any)
                 store.dispatch('members/setMemberStatus', { memberId: data.senderId, status: null });
             })
+            .onNewMessageTrace(data => {
+                store.dispatch('visualization/deleteEdge', data)
+            })
             .onMessageRead(data => {
                 store.dispatch('messages/markSentMessageAsRead', data)
             })
 
             .onStartedTyping(data => {
-                store.dispatch('members/setMemberStatus', { memberId: data.memberId, status: 'typing' });
+                if (store.getters['chat/memberId'] === data.recipientId) {
+                    store.dispatch('members/setMemberStatus', { memberId: data.senderId, status: 'typing' });
+                }
+
+                store.dispatch('visualization/addEdge', data);
             })
             .onStoppedTyping(data => {
-                store.dispatch('members/setMemberStatus', { memberId: data.memberId, status: null });
+                store.dispatch('members/setMemberStatus', { memberId: data.senderId, status: null });
+
+                store.dispatch('visualization/deleteEdge', data);
             })
 
             .onMemberJoined(data => {
                 store.dispatch('members/joinMember', data)
-                store.dispatch('visualization/addNode', data.memberId)
+                store.dispatch('visualization/addNode', { id: data.memberId, label: data.nickname})
             })
             .onMemberBecameAway(data => {
                 store.dispatch('members/markAsAway', data)
@@ -31,16 +40,6 @@ function createChatServicePlugin() {
             .onMemberLeft(data => {
                 store.dispatch('members/leaveMember', data)
                 store.dispatch('visualization/deleteNode', data.memberId)
-            })
-
-            .onNewMessageTrace(data => {
-                store.dispatch('visualization/deleteEdge', data)
-            })
-            .onStartedTypingTrace(data => {
-                store.dispatch('visualization/addEdge', data)
-            })
-            .onStoppedTypingTrace(data => {
-                store.dispatch('visualization/deleteEdge', data)
             })
 
             .onSocketConnected(() => {

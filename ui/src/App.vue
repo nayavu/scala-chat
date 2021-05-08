@@ -42,7 +42,7 @@ export default {
       return this.$store.getters['chat/isAuthenticated'];
     },
     notification() {
-      return this.$store.getters.notification;
+      return this.$store.getters.['chat/notification'];
     },
   },
 }

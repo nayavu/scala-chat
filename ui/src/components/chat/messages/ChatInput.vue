@@ -19,13 +19,16 @@ export default {
   methods: {
     async submit() {
       const currentMemberId = this.$store.getters['chat/memberId'];
+      const message = this.$refs.message.value;
+      if (!message) {
+        return;
+      }
 
       this.$store.dispatch({
         type: 'messages/addMessage',
-
         senderId: currentMemberId,
         recipientId: this.targetMemberId,
-        message: this.$refs.message.value
+        message: message
       });
 
       this.$refs.message.value = null;

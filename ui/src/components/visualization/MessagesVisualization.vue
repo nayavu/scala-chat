@@ -43,16 +43,14 @@ export default {
       container: 'graph',
       width: 500,
       height: 500,
+      fitView: true,
 
       layout: {
-        type: 'force',
-        center: [200, 200], // The center of the graph by default
-        linkDistance: 200, // Edge length
-        nodeSize: 30,
-        nodeStrength: 30,
-        edgeStrength: 0.1,
-        forceSimulation: null,
-      }
+        type: 'circular',
+        center: [0, 0], // The center of the graph by default
+        radius: 250,
+        angleRatio: 1,
+      },
     });
     this.redrawGraph();
   },
@@ -65,8 +63,9 @@ export default {
 
 <style scoped>
 #graph {
-  width: 50%;
-  padding-top: 10%;
+  width: 500px;
+  height: 500px;
+  padding-top: 50px;
   margin: 0 auto;
 }
 </style>

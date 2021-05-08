@@ -50,20 +50,12 @@ class ChatManager @Inject()(memberRegistry: MemberRegistry) extends Actor {
         .foreach(_ ! DownstreamMessageRead(messageId, recipientId, System.currentTimeMillis()))
 
     case MemberStartedTyping(senderId, recipientId) =>
-      memberActors.get(recipientId)
-        .foreach(_ ! DownstreamStartedTyping(senderId))
-
-      // TODO it's inefficient to send a `trace` messag for senderId and recipientId because they already have this event
       memberActors.values
-        .foreach(_ ! DownstreamStartedTypingTrace(senderId, recipientId))
+        .foreach(_ ! DownstreamStartedTyping(senderId, recipientId))
 
     case MemberStoppedTyping(senderId, recipientId) =>
-      memberActors.get(recipientId)
-        .foreach(_ ! DownstreamStoppedTyping(senderId))
-
-      // TODO it's inefficient to send a `trace` message for senderId and recipientId because they already have this event
       memberActors.values
-        .foreach(_ ! DownstreamStoppedTypingTrace(senderId, recipientId))
+        .foreach(_ ! DownstreamStoppedTyping(senderId, recipientId))
 
     case m => logger.warn(s"Unhandled message ${m}")
   }

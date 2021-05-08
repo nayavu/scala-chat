@@ -12,10 +12,7 @@ export const chatStore = {
 
             connected: false,
 
-            notification: {
-                text: null,
-                level: null
-            }
+            notification: null
         };
     },
 
@@ -177,6 +174,10 @@ export const chatStore = {
 
         connected(state) {
             return state.connected;
+        },
+
+        notification(state) {
+            return state.notification;
         }
     }
 };

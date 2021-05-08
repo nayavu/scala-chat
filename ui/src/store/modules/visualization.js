@@ -13,18 +13,10 @@ export const visualizationStore = {
     },
     mutations: {
         SET_NODES(state, payload) {
-            state.nodes = payload.map((id) => {
-                return {
-                    id: id,
-                    // label: id
-                }
-            });
+            state.nodes = payload;
         },
-        ADD_NODE(state, id) {
-            state.nodes = [...state.nodes, {
-                id: id,
-                // label: id
-            }];
+        ADD_NODE(state, { id, label }) {
+            state.nodes = [...state.nodes, { id, label }];
         },
 
         DELETE_NODE(state, id) {
@@ -51,8 +43,8 @@ export const visualizationStore = {
         setNodes(context, payload) {
             context.commit('SET_NODES', payload);
         },
-        addNode(context, id) {
-            context.commit('ADD_NODE', id);
+        addNode(context, { id, label }) {
+            context.commit('ADD_NODE', { id, label });
         },
         deleteNode(context, id) {
             context.commit('DELETE_NODE', id);
