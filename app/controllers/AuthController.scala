@@ -32,7 +32,9 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
       memberRegistry.join(joinRequest.nickname)
         .map(memberWithTokens => {
           val (member, token) = memberWithTokens
+          
           logger.info(s"Member ${joinRequest.nickname} joined")
+          
           Ok(Json.toJson(JoinResponse(member, token, generateChatSocketUrl)))
         })
         .getOrElse(Unauthorized(errorMessage(s"Name '${joinRequest.nickname}' is already taken")))
@@ -43,8 +45,11 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
     request.headers.get("Authorization")
       .map(token => {
         memberRegistry.leave(token) match {
-          case Some(userId) =>
-            chatManager ! ChatManager.MemberLeft(userId)
+          case Some(member) =>
+            chatManager ! ChatManager.MemberLeft(member.memberId)
+
+            logger.info(s"Member ${member.nickname} left")
+            
             NoContent
           case _ =>
             Unauthorized(errorMessage(s"Invalid session"))

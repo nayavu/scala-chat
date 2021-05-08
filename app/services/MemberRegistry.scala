@@ -68,7 +68,7 @@ class MemberRegistry @Inject()(clock: Clock) {
     }
   }
 
-  def leave(token: String): Option[String] = {
+  def leave(token: String): Option[Member] = {
     this.synchronized {
       sessions.get(token)
         .flatMap(members.get)
@@ -76,7 +76,7 @@ class MemberRegistry @Inject()(clock: Clock) {
           members -= member.memberId
           sessions -= token
 
-          member.memberId
+          member
         }
     }
   }
