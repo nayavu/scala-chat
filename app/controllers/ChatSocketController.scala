@@ -29,33 +29,32 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
 
   def chatSocket: WebSocket = WebSocket.acceptOrResult[Upstream, Downstream] {
     case request if sameOriginCheck(request) =>
-      authenticationCheck(request) match {
-        case Some(member) => Future.successful {
+      authenticationCheck(request).map {
+        case Some(member) =>
           logger.info(s"Chat socket for member ${member.memberId} connected")
           Right(
             ActorFlow.actorRef[Upstream, Downstream] { out =>
               ChatActor.props(out, chatManager, member)
             }
           )
-        }
 
-        case _ => Future.successful {
+        case _ =>
           logger.warn("Could not establish chat socket connection - authentication failed")
           Left(Forbidden("Authentication failed"))
-        }
       }
 
     case rejected =>
       logger.error(s"Request ${rejected} failed same origin check")
       Future.successful {
-        Left(Forbidden("forbidden"))
+        Left(Forbidden("Origin check failed"))
       }
   }
 
-  private def authenticationCheck(rh: RequestHeader): Option[Member] = {
+  private def authenticationCheck(rh: RequestHeader): Future[Option[Member]] = {
     // the simplest possible authentication via protocol Sec-WebSocket-Protocol
     rh.headers.get("Sec-WebSocket-Protocol")
-      .flatMap(memberRegistry.findSession)
+      .map(memberRegistry.checkSession)
+      .getOrElse(Future.successful(None))
   }
 }
 

@@ -2,26 +2,20 @@ package controllers
 
 import play.api.libs.json.Json
 import play.api.mvc.{BaseController, ControllerComponents}
-import services.MemberRegistry
+import services.{MemberRegistry, ServiceExecutionContext}
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
 class MembersController @Inject()(val controllerComponents: ControllerComponents,
-                                  memberRegistry: MemberRegistry
-                                 ) extends BaseController {
+                                  sessionRefiner: SessionRefiner,
+                                  memberRegistry: MemberRegistry,
+                                 )
+                                 (implicit repositoryExecutionContext: ServiceExecutionContext)
+  extends BaseController {
 
-  def getMembers() = Action { implicit request =>
-    request.headers.get("Authorization")
-      .map(token => {
-        memberRegistry.findSession(token) match {
-          case Some(member) =>
-            Ok(Json.toJson(memberRegistry.listMembers()))
-
-          case None =>
-            Unauthorized
-        }
-      })
-      .getOrElse(Unauthorized)
+  def getMembers() = Action.andThen(sessionRefiner).async {
+    memberRegistry.listMembers()
+      .map { members => Ok(Json.toJson(members)) }
   }
 }

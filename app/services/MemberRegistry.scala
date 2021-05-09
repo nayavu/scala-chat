@@ -1,83 +1,96 @@
 package services
 
-import models.Member
+import models.{Member, MemberSession}
 
 import java.time.Clock
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
-// TODO: it's a very ugly implementation of authentication service
 @Singleton
 class MemberRegistry @Inject()(clock: Clock) {
 
   // memberId => Member
   private val members = collection.mutable.HashMap[String, Member]()
 
-  // token => Member
+  // nickname => memberId
+  private val nicknames = collection.mutable.HashMap[String, String]()
+
+  // session token => memberId
   private val sessions = collection.mutable.HashMap[String, String]()
 
-  def join(username: String): Option[(Member, String)] = {
+  def join(nickname: String)(implicit ec: ExecutionContext): Future[Option[MemberSession]] = {
+    Future {
+      val token = Random.alphanumeric.take(32).mkString("")
+      val memberId = Random.alphanumeric.take(10).mkString("")
 
-    val token = Random.alphanumeric.take(32).mkString("")
-    val generatedmemberId = Random.alphanumeric.take(10).mkString("")
+      // synchronize all 3 maps to guarantee atomicity
+      this.synchronized {
+        nicknames.get(nickname) match {
+          case Some(_) =>
+            // member already joined - cannot join again
+            None
 
-    // long synchronized block to omit race conditions, TODO fix this
-    this.synchronized {
-      val existingMember = members.values.find(_.nickname == username)
+          case None =>
+            nicknames(nickname) = memberId
+            sessions(token) = memberId
 
-      if (existingMember.isDefined) {
-        return None
-      }
-
-      val memberId = existingMember.map(_.memberId).getOrElse(generatedmemberId)
-
-      val member = Member(memberId, username, Some(clock.instant.toEpochMilli))
-      members(memberId) = member
-      sessions(token) = memberId
-
-      return Some((member, token))
-    }
-  }
-
-  def setMemberIsAway(memberId: String): Unit = {
-    this.synchronized {
-      members.get(memberId).map(existingMember =>
-        members(memberId) = Member(memberId, existingMember.nickname, None)
-      )
-    }
-  }
-
-  def findSession(token: String): Option[Member] = {
-    this.synchronized {
-      sessions.get(token) match {
-        case Some(memberId) =>
-          members.get(memberId).map(existingMember => {
-            val member = Member(memberId, existingMember.nickname, Some(System.currentTimeMillis()))
+            val member = Member(memberId, nickname, Some(clock.instant.toEpochMilli))
             members(memberId) = member
-            member
-          })
-        case _ =>
-          None
+
+            Some(MemberSession(member, token))
+        }
       }
     }
   }
 
-  def listMembers(): Seq[Member] = {
-    this.synchronized {
-      this.members.values.toSeq
+  def setMemberIsAway(memberId: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    Future {
+      this.synchronized {
+        members.get(memberId).map(member =>
+          members(memberId) = Member(memberId, member.nickname, None)
+        )
+      }
     }
   }
 
-  def leave(token: String): Option[Member] = {
-    this.synchronized {
-      sessions.get(token)
-        .flatMap(members.get)
-        .map { member =>
-          members -= member.memberId
-          sessions -= token
-
-          member
+  def checkSession(token: String)(implicit ec: ExecutionContext): Future[Option[Member]] = {
+    Future {
+      this.synchronized {
+        sessions.get(token) match {
+          case Some(memberId) =>
+            val member = members(memberId).copy(onlineSince = Some(System.currentTimeMillis()))
+            members(memberId) = member
+            Some(member)
+          case _ =>
+            None
         }
+      }
+    }
+  }
+
+  def listMembers()(implicit ec: ExecutionContext): Future[Seq[Member]] = {
+    Future {
+      this.synchronized {
+        this.members.values.toSeq
+      }
+    }
+  }
+
+  def leave(memberId: String, token: String)(implicit ec: ExecutionContext): Future[Option[Member]] = {
+    Future {
+      this.synchronized {
+        members.remove(memberId) match {
+          case Some(member) =>
+            nicknames -= member.nickname
+            sessions -= token
+
+            Some(member)
+
+          case _ =>
+            None
+        }
+      }
     }
   }
 }

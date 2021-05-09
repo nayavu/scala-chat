@@ -29,11 +29,11 @@ trait WebSocketSameOriginCheck {
         true
 
       case Some(badOrigin) =>
-        logger.error(s"originCheck: rejecting request because Origin header value ${badOrigin} is not in the same origin")
+        logger.error(s"Origin header value ${badOrigin} is not within ${allowedOrigins}")
         false
 
       case None =>
-        logger.error("originCheck: rejecting request because no Origin header found")
+        logger.error("No Origin header found")
         false
     }
   }

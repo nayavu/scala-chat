@@ -1,14 +1,17 @@
 package actors
 
 import akka.actor.{Actor, ActorRef}
-import models.{Member,ChatMessage}
+import models.{ChatMessage, Member}
 import models.events._
-import services.MemberRegistry
+import services.{MemberRegistry, ServiceExecutionContext}
 
 import javax.inject.Inject
 import scala.collection.mutable
 
-class ChatManager @Inject()(memberRegistry: MemberRegistry) extends Actor {
+class ChatManager @Inject()(memberRegistry: MemberRegistry)
+                           (implicit serviceExecutionContext: ServiceExecutionContext)
+  extends Actor {
+
   import ChatManager._
 
   private def logger = play.api.Logger(getClass)
