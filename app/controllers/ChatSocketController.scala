@@ -3,6 +3,7 @@ package controllers
 import actors.ChatActor
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.Materializer
+import controllers.helpers.WebSocketSameOriginCheck
 import models.Member
 import models.events.{Downstream, Upstream}
 import play.api.Configuration

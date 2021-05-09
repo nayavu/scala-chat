@@ -1,5 +1,6 @@
 package controllers
 
+import controllers.helpers.SessionRefiner
 import play.api.libs.json.Json
 import play.api.mvc.{BaseController, ControllerComponents}
 import services.{MemberRegistry, ServiceExecutionContext}

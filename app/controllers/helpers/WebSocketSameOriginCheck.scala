@@ -1,4 +1,4 @@
-package controllers
+package controllers.helpers
 
 import play.api.Configuration
 import play.api.mvc.RequestHeader

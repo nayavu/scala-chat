@@ -1,5 +1,6 @@
-package controllers
+package controllers.helpers
 
+import controllers.ErrorMessage
 import models.MemberSession
 import play.api.libs.json.Json
 import play.api.mvc.Results.Unauthorized

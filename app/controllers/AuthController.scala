@@ -2,6 +2,7 @@ package controllers
 
 import actors.ChatManager
 import akka.actor.ActorRef
+import controllers.helpers.SessionRefiner
 import models.Member
 import play.api.libs.json._
 import play.api.mvc.{BaseController, ControllerComponents, Request, Result}
