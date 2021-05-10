@@ -8,7 +8,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 @Singleton
-class MemberRegistry @Inject()(clock: Clock) {
+class MemberRegistry @Inject()(clock: Clock, randomStringGenerator: RandomStringGenerator) {
 
   // memberId => Member
   private val members = collection.mutable.HashMap[String, Member]()
@@ -21,8 +21,8 @@ class MemberRegistry @Inject()(clock: Clock) {
 
   def join(nickname: String)(implicit ec: ExecutionContext): Future[Option[MemberSession]] = {
     Future {
-      val token = Random.alphanumeric.take(32).mkString("")
-      val memberId = Random.alphanumeric.take(10).mkString("")
+      val token = randomStringGenerator.generate(32)
+      val memberId = randomStringGenerator.generate(10)
 
       // synchronize all 3 maps to guarantee atomicity
       this.synchronized {
@@ -59,7 +59,7 @@ class MemberRegistry @Inject()(clock: Clock) {
       this.synchronized {
         sessions.get(token) match {
           case Some(memberId) =>
-            val member = members(memberId).copy(onlineSince = Some(System.currentTimeMillis()))
+            val member = members(memberId).copy(onlineSince = Some(clock.instant.toEpochMilli))
             members(memberId) = member
             Some(member)
           case _ =>

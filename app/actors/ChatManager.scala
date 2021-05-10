@@ -21,9 +21,15 @@ class ChatManager @Inject()(memberRegistry: MemberRegistry)
   override def receive: Receive = {
     case MemberJoined(member, memberActor) =>
       logger.info(s"Member ${member.memberId} joined")
-      memberActors.filterKeys(_ != member.memberId)
-        .values
-        .foreach(_ ! DownstreamMemberJoined(member.memberId, member.nickname, member.onlineSince))
+      memberActors.view
+        .filter {
+          case (memberId, _) =>
+            memberId != member.memberId
+        }
+        .foreach {
+          case (_, actorRef) =>
+            actorRef ! DownstreamMemberJoined(member.memberId, member.nickname, member.onlineSince)
+        }
 
       memberActors(member.memberId) = memberActor
 

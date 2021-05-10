@@ -1,5 +1,6 @@
-logLevel := Level.Warn
+resolvers += Resolver.typesafeRepo("snapshots")
 
-resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/"
+resolvers += Resolver.jcenterRepo
 
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.7")
+// The Play plugin
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.8")

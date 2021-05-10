@@ -28,7 +28,7 @@ class ChatSocketController @Inject()(val controllerComponents: ControllerCompone
 
   private def logger = play.api.Logger(getClass)
 
-  def chatSocket: WebSocket = WebSocket.acceptOrResult[Upstream, Downstream] {
+  def chatSocket(): WebSocket = WebSocket.acceptOrResult[Upstream, Downstream] {
     case request if sameOriginCheck(request) =>
       authenticationCheck(request).map {
         case Some(member) =>

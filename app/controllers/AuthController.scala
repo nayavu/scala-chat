@@ -42,7 +42,7 @@ class AuthController @Inject()(val controllerComponents: ControllerComponents,
 
             Ok(Json.toJson(JoinResponse(memberSession.member, memberSession.token, generateChatSocketUrl)))
           case _ =>
-            BadRequest(Json.toJson(ErrorMessage(s"Name '${joinRequest.nickname}' is already taken")))
+            Conflict(Json.toJson(ErrorMessage(s"Name '${joinRequest.nickname}' is already taken")))
         }
     }
   }
